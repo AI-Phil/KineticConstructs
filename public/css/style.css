@@ -91,10 +91,10 @@ body {
     border-right: 1px solid #ddd;
     padding: 15px;
     box-sizing: border-box;
-    height: calc(100vh - 50px); /* Match container height */
-    overflow-y: auto; /* Enable vertical scrolling */
-    position: sticky; /* Keep sidebar visible on scroll */
-    top: 50px; /* Stick below navbar (adjust if navbar height changes) */
+    height: calc(100vh - 50px); /* Adjust height calculation for sticky header */
+    overflow-y: auto; 
+    position: sticky; 
+    top: 50px; /* Stick below the 50px header */
 }
 
 /* Main Product Area */
@@ -369,4 +369,398 @@ h1 {
 .tag-link.zero-count:hover .tag {
     background-color: #f0f0f0; /* Keep same on hover */
     color: #bbb;
+}
+
+/* General Container for two-column layouts */
+.container {
+    display: flex;
+}
+
+/* --- Search Page Specific Styles --- */
+.search-container {
+    /* Adjust height if header is fixed/sticky */
+}
+
+.search-sidebar {
+    width: 280px; /* Wider sidebar for filters */
+    background-color: #f8f8f8;
+    border-right: 1px solid #ddd;
+    padding: 15px;
+    box-sizing: border-box;
+    height: calc(100vh - 50px); /* Adjust based on header height */
+    overflow-y: auto;
+    position: sticky;
+    top: 50px; /* Adjust based on header height */
+}
+
+.search-sidebar h2, .search-sidebar h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+.search-sidebar h3 {
+    margin-top: 15px;
+    font-size: 1.1em;
+}
+
+.filter-section {
+    margin-bottom: 20px;
+}
+
+/* Adjust hierarchy dropdowns for sidebar */
+.hierarchy-filter .nav-item.dropdown { 
+    float: none; 
+    width: 100%; 
+    margin-bottom: 2px; /* Reduced space */
+}
+.hierarchy-filter .dropbtn { 
+    width: 100%; 
+    text-align: left; 
+    background-color: #eee; 
+    border: 1px solid #ccc; 
+    box-sizing: border-box; 
+    color: #333; /* Darker text color */
+    padding: 8px 12px; /* Reduced padding */
+    cursor: pointer; /* Indicate clickable */
+    display: block; /* Ensure it takes full width */
+    text-decoration: none; /* Remove underline */
+}
+.hierarchy-filter .dropbtn:hover {
+    background-color: #ddd;
+}
+
+/* Fix dropdown content links */
+.hierarchy-filter .dropdown-content { 
+    display: none; 
+    background: #f0f0f0; 
+    box-shadow: none; 
+    min-width: 0;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border: 1px solid #ddd; 
+    border-top: none; 
+    margin-bottom: 2px; 
+    position: static; /* Ensure it's not absolutely positioned */
+}
+/* Style active dropdown content */
+.hierarchy-filter .nav-item.dropdown.active .dropdown-content {
+    display: block;
+}
+
+.hierarchy-filter .dropdown-content a { 
+    padding: 5px 25px; /* Reduced padding */ 
+    font-size: 0.9em;
+    color: #0056b3; 
+    text-decoration: none; 
+    display: block; /* Ensure full width */
+}
+.hierarchy-filter .dropdown-content a:hover {
+    text-decoration: underline; 
+    background-color: #e0e0e0; /* Slightly different hover */
+}
+
+#tagSearchInput {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.available-tags {
+    /* Styles are mostly okay, ensure ul/li are styled */
+    max-height: 40vh; /* Limit height and allow scroll */
+    overflow-y: auto;
+    border: 1px solid #eee;
+    padding: 5px;
+}
+.available-tags ul { list-style: none; padding: 0; margin: 0; }
+.available-tags li { margin-bottom: 0; }
+.available-tags .tag-link { 
+    display: block; 
+    margin-bottom: 2px; 
+    text-decoration: none; /* Ensure link itself is not underlined */
+}
+/* Re-apply specific tag styles within the sidebar list */
+.available-tags .tag { 
+    display: block; 
+    text-align: left; 
+    width: 100%; 
+    box-sizing: border-box;
+    background-color: #e0e0e0; /* Ensure background */
+    color: #555; /* Ensure text color */
+    padding: 3px 8px; /* Ensure padding */
+    border-radius: 4px; /* Ensure border-radius */
+    font-size: 0.8em; /* Ensure font size */
+    margin: 0; /* Override default tag margin if necessary */
+}
+.available-tags .tag-link:hover .tag {
+    background-color: #c0c0c0; 
+    color: #333;
+}
+
+/* zero-count styles need to target the inner .tag span now */
+.available-tags .tag-link.zero-count .tag {
+     background-color: #f0f0f0; 
+     color: #bbb; 
+     text-decoration: line-through; /* Apply strikethrough to text */
+}
+.available-tags .tag-link.zero-count:hover .tag {
+    background-color: #f0f0f0;
+    color: #bbb;
+    text-decoration: line-through; 
+}
+
+.search-results-area {
+    flex-grow: 1;
+    padding: 20px;
+}
+
+.filter-info {
+    /* Styles mostly okay, ensure clear-all link is styled */
+    background-color: #e9e9e9;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    display: flex; 
+    align-items: center;
+    flex-wrap: wrap; 
+}
+.clear-all-tags {
+    margin-left: 15px;
+    font-size: 0.9em;
+    color: #d9534f;
+}
+/* Other filter-info styles remain */
+
+/* Product Grid/Card styles remain mostly the same */
+.product-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block; /* Ensure link wraps card */
+}
+.product-card {
+    /* Styles remain */
+    height: 100%; /* Ensure cards fill link space */
+    box-sizing: border-box;
+}
+.product-card .tags {
+    margin-top: 10px; /* Ensure space above tags */
+}
+.product-card .tag-more {
+    font-style: italic;
+    color: #888;
+}
+/* Product meta styles remain */
+
+/* --- Product Detail Page Specific Styles --- */
+.product-detail-container {
+    /* Uses .container flex layout */
+    align-items: flex-start; /* Align items top */
+    padding: 20px; /* Add overall padding */
+}
+
+.product-detail-info {
+    width: 50%;
+    /* padding-right: 20px; */ /* Padding handled by container */
+    box-sizing: border-box;
+}
+
+.product-detail-image {
+    max-width: 250px; /* Set a max width for thumbnail */
+    max-height: 250px; /* Optional: Set max height */
+    width: auto; /* Maintain aspect ratio */
+    height: auto; /* Maintain aspect ratio */
+    margin-bottom: 15px;
+    border-radius: 4px;
+    cursor: pointer; /* Add pointer cursor */
+    border: 1px solid #eee; /* Optional: Add slight border */
+}
+
+.product-attributes h3,
+.product-documentation-links h3 {
+    margin-top: 20px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 3px;
+}
+
+.product-attributes ul,
+.product-documentation-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.product-attributes li {
+    margin-bottom: 5px;
+}
+
+.product-documentation-links li {
+    margin-bottom: 3px;
+}
+
+.product-documentation-links .doc-link {
+    color: #0056b3;
+    text-decoration: none;
+}
+.product-documentation-links .doc-link:hover {
+    text-decoration: underline;
+}
+.product-documentation-links .doc-link.active {
+    font-weight: bold;
+}
+
+.back-to-search {
+    /* display: inline-block; */
+    display: block; /* Make it block level */
+    /* margin-top: 20px; */
+    margin-bottom: 15px; /* Add space below */
+    color: #0056b3;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+.back-to-search:hover {
+    text-decoration: underline;
+}
+
+.product-detail-doc-display {
+    width: 50%;
+    border-left: 1px solid #ddd;
+    padding-left: 20px;
+    box-sizing: border-box;
+    height: calc(100vh - 70px); /* Adjust height calc - 50px header + 20px padding */
+    overflow-y: auto;
+    position: sticky;
+    top: 50px; /* Stick below the 50px header */
+}
+
+#docViewerTitle {
+    font-size: 1.5em;
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 10px;
+    display: none; /* Hide initially */
+}
+
+/* Add some basic styling for Markdown content */
+#docViewerContent h1, 
+#docViewerContent h2, 
+#docViewerContent h3, 
+#docViewerContent h4 {
+    margin-top: 1.2em;
+    margin-bottom: 0.8em; /* Increased bottom margin */
+    color: #333;
+}
+#docViewerContent h1 { font-size: 1.5em; }
+#docViewerContent h2 { font-size: 1.3em; }
+#docViewerContent h3 { font-size: 1.1em; }
+
+#docViewerContent p {
+    margin-bottom: 1.2em; /* Increased bottom margin */
+    line-height: 1.6;
+}
+
+#docViewerContent ul,
+#docViewerContent ol {
+    margin-left: 20px;
+    margin-bottom: 0.8em;
+}
+
+#docViewerContent li {
+    margin-bottom: 0.3em; /* Adjusted back to 0.3em as requested */
+}
+
+#docViewerContent code {
+    background-color: #eee;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+#docViewerContent pre {
+    background-color: #eee;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+#docViewerContent blockquote {
+    border-left: 3px solid #ccc;
+    margin-left: 0;
+    padding-left: 15px;
+    color: #666;
+}
+
+/* --- Image Modal Styles --- */
+.image-modal-overlay {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1500; /* Sit on top of everything */
+  padding-top: 50px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; 
+  height: 100%; 
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgba(0,0,0,0.85); /* Black w/ opacity */
+}
+
+.image-modal-content {
+  margin: auto;
+  display: block;
+  width: 80%;
+  max-width: 700px;
+}
+
+#imageModalCaption {
+  margin: auto;
+  display: block;
+  width: 80%;
+  max-width: 700px;
+  text-align: center;
+  color: #ccc;
+  padding: 10px 0;
+  height: 150px; /* Reserve space */
+}
+
+/* Add Animation */
+.image-modal-content, #imageModalCaption {  
+  animation-name: zoom;
+  animation-duration: 0.6s;
+}
+
+@keyframes zoom {
+  from {transform:scale(0)} 
+  to {transform:scale(1)}
+}
+
+.image-modal-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 35px;
+  color: #f1f1f1;
+  font-size: 40px;
+  font-weight: bold;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.image-modal-close-btn:hover,
+.image-modal-close-btn:focus {
+  color: #bbb;
+  text-decoration: none;
+}
+
+/* Header Styles */
+.main-header {
+    background-color: #333;
+    position: sticky; /* Make header sticky */
+    top: 0; /* Stick to the top */
+    z-index: 900; /* Ensure it's above content but below modals */
+    width: 100%;
 } 

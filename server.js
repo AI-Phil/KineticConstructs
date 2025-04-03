@@ -9,6 +9,7 @@ console.log('ASTRA_DB_TOKEN:', process.env.ASTRA_DB_TOKEN ? 'Token loaded (maske
 const express = require('express');
 const path = require('path');
 const { DataAPIClient } = require("@datastax/astra-db-ts");
+const { marked } = require('marked'); // Import marked
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -24,37 +25,38 @@ if (!ASTRA_DB_API_ENDPOINT || !ASTRA_DB_TOKEN) {
 const collectionName = ASTRA_DB_COLLECTION || 'products'; // Default to 'products'
 
 let db;
-let collection;
-let productHierarchy = {}; // Hierarchy built from DB on startup
-let tagsByFrequency = []; // List of {tag, count}, sorted by count desc
+let productCollection;
+let documentCollection;
+let productHierarchy = {};
+let tagsByFrequency = [];
+let docTitleMap = new Map(); // Map to store DocID -> DocTitle
 
 // Updated initialization function name and logic
-async function initializeDbAndHierarchy() {
+async function initializeDbAndData() {
+    console.log("Running DB and Data Initialization...");
     try {
         // Connect to DB
         const client = new DataAPIClient(ASTRA_DB_TOKEN);
         db = client.db(ASTRA_DB_API_ENDPOINT);
-        collection = await db.collection(collectionName);
-        console.log(`Connected to Astra DB and collection '${collectionName}'`);
+        // Get both collections
+        productCollection = await db.collection(process.env.ASTRA_DB_PRODUCT_COLLECTION || 'products');
+        documentCollection = await db.collection(process.env.ASTRA_DB_DOCUMENT_COLLECTION || 'documents');
+        console.log(`Connected to Astra DB collections: ${productCollection.collectionName}, ${documentCollection.collectionName}`);
 
-        // Fetch necessary fields for hierarchy AND tags
-        console.log('Fetching family/type/tags data from DB for hierarchy and tags list...');
-        const cursor = await collection.find({}, {
-            projection: {
-                family: 1,
-                product_type: 1,
-                tags: 1 // Add tags to projection
-            }
+        // Fetch product data for hierarchy/tags
+        console.log('Fetching data from products collection...');
+        const productCursor = await productCollection.find({}, {
+            projection: { family: 1, product_type: 1, tags: 1 }
         });
-        const initialItems = await cursor.toArray();
-        console.log(`Fetched ${initialItems.length} items for hierarchy/tags build.`);
-
+        const initialProductItems = await productCursor.toArray();
+        console.log(`Fetched ${initialProductItems.length} product items.`);
+        
         // Build hierarchy and count tags
         console.log('Building hierarchy and counting tags from DB data...');
         const hierarchy = {};
         const tagCounts = new Map(); // Use a Map for counts
 
-        initialItems.forEach(item => {
+        initialProductItems.forEach(item => {
             const family = item.family;
             const productType = item.product_type;
 
@@ -85,7 +87,7 @@ async function initializeDbAndHierarchy() {
                 sortedHierarchy[family][productType] = true;
             });
         });
-        productHierarchy = sortedHierarchy; // Assign to the global variable
+        productHierarchy = sortedHierarchy;
         console.log('Product hierarchy built.');
 
         // Convert Map to array, sort by count (desc), then alphabetically for ties
@@ -99,13 +101,30 @@ async function initializeDbAndHierarchy() {
             });
         console.log(`Counted and sorted ${tagsByFrequency.length} unique tags by frequency.`);
 
+        // Fetch document titles
+        console.log('Fetching document titles...');
+        const docCursor = await documentCollection.find({}, {
+            projection: { _id: 1, title: 1 }
+        });
+        const docTitles = await docCursor.toArray();
+        docTitleMap.clear(); // Clear previous map
+        docTitles.forEach(doc => {
+            if (doc._id && doc.title) {
+                docTitleMap.set(doc._id, doc.title);
+            }
+        });
+        console.log(`Mapped ${docTitleMap.size} document titles.`);
+
     } catch (e) {
         console.error("Error during DB connection or initial data build:", e);
         db = null;
-        collection = null;
+        productCollection = null;
+        documentCollection = null;
         productHierarchy = {};
         tagsByFrequency = []; // Ensure empty on error
+        docTitleMap.clear(); 
     }
+    console.log("Initialization complete.");
 }
 
 // --- Express App Setup ---
@@ -114,92 +133,158 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Serve static files (CSS, images)
 app.use(express.static(path.join(__dirname, 'public')));
-
+app.use('/images/products', express.static(path.join(__dirname, 'public/images/products'))); // Serve copied images
+app.use(express.json()); // Needed to parse request body if we used POST later
 
 // --- Routes ---
-app.get('/', async (req, res) => {
-    // Get query parameters
+
+// Home Page - Reverted to simple render
+app.get('/', (req, res) => {
+    res.render('home', { title: 'Welcome' });
+});
+
+// Search Page
+app.get('/search', async (req, res) => {
     const requestedFamily = req.query.family;
     const requestedType = req.query.type;
-    // Get tags - ensure it's an array
     let requestedTags = req.query.tag || []; 
-    if (typeof requestedTags === 'string') {
-        requestedTags = [requestedTags]; // Convert single tag string to array
-    }
+    if (typeof requestedTags === 'string') requestedTags = [requestedTags];
 
-    // Build filter for DB query - Tags take precedence
     const filter = {};
     if (requestedTags.length > 0) {
-        // Use $all operator implicitly via the driver for array of tags
-        // Assumes the driver handles mapping an array value to the correct query ($all or similar)
         filter.tags = { $all: requestedTags }; 
-    } else if (requestedFamily) { // Otherwise, filter by family/type
+    } else if (requestedFamily) { 
         filter.family = requestedFamily;
-        if (requestedType) {
-            filter.product_type = requestedType;
-        }
+        if (requestedType) filter.product_type = requestedType;
     }
 
     let products = [];
     let error = null;
 
-    if (!collection) {
-        error = "Database connection not available.";
+    if (!productCollection) {
+        error = "Database connection error.";
     } else {
         try {
-            // Query DB on each request with the filter
-            console.log(`Querying DB with filter: ${JSON.stringify(filter)}`);
-            const cursor = await collection.find(filter);
-            products = await cursor.toArray(); // These are the *filtered* products
-            console.log(`Fetched ${products.length} products from DB.`);
-        } catch (e) {
-            console.error("Error fetching products from Astra DB:", e);
-            error = "Could not retrieve products from the database.";
-            products = []; // Ensure empty array on error
+            console.log(`Querying products with filter: ${JSON.stringify(filter)}`);
+            const cursor = await productCollection.find(filter);
+            products = await cursor.toArray(); 
+            console.log(`Fetched ${products.length} products.`);
+        } catch (e) { 
+            console.error("Error fetching products:", e);
+            error = "Could not retrieve products.";
+            products = []; 
         }
     }
 
-    // Calculate dynamic tag counts from the *filtered* products
     const dynamicTagCounts = new Map();
-    if (!error) { // Only calculate if products were fetched successfully
+    if (!error) {
         products.forEach(product => {
             if (product.tags && Array.isArray(product.tags)) {
-                product.tags.forEach(tag => {
-                    dynamicTagCounts.set(tag, (dynamicTagCounts.get(tag) || 0) + 1);
-                });
+                product.tags.forEach(tag => dynamicTagCounts.set(tag, (dynamicTagCounts.get(tag) || 0) + 1));
             }
         });
     }
 
-    // Prepare display tags with dynamic counts (using all from static list)
-    const displayTags = tagsByFrequency.map(tagInfo => ({
+    const displayTags = tagsByFrequency.map(tagInfo => ({ // Map ALL tags
         tag: tagInfo.tag,
-        totalCount: tagInfo.count, // Keep total count if needed later
-        dynamicCount: dynamicTagCounts.get(tagInfo.tag) || 0 // Get count within filtered results
+        dynamicCount: dynamicTagCounts.get(tagInfo.tag) || 0
     }));
 
-    // Log rendering info - include tags array
-    console.log(`Rendering page with ${products.length} products (filtered by tags: [${requestedTags.join(', ') || 'none'}], family: ${requestedFamily || 'none'}, type: ${requestedType || 'none'})`);
-    
-    res.render('products', { 
+    res.render('search', { 
+        title: 'Search Products', 
         products: products, 
         error: error, 
         hierarchy: productHierarchy, 
-        displayTags: displayTags, // Pass tags with dynamic counts
+        displayTags: displayTags, 
         currentFamily: requestedFamily,
         currentType: requestedType,
-        currentTags: requestedTags // Pass array of current tags
+        currentTags: requestedTags,
+        queryParams: req.query // Pass original query params for link generation
     });
+});
+
+// Product Detail Page
+app.get('/product/:productId', async (req, res) => {
+    const productId = req.params.productId;
+    const searchQueryParams = req.query; // Capture the incoming query params
+    let product = null;
+    let error = null;
+
+    if (!productCollection) {
+        error = "Database connection error.";
+    } else {
+        try {
+            console.log(`Fetching product with _id: ${productId}`);
+            product = await productCollection.findOne({ _id: productId });
+            if (product) {
+                 // Add document titles to the product object
+                product.documentation = [];
+                if (product.documentation_ids && Array.isArray(product.documentation_ids)) {
+                    product.documentation = product.documentation_ids
+                        .map(id => ({ id: id, title: docTitleMap.get(id) || id }))
+                        .sort((a, b) => a.title.localeCompare(b.title)); 
+                }
+            } else {
+                error = "Product not found.";
+            }
+        } catch(e) {
+            console.error(`Error fetching product ${productId}:`, e);
+            error = "Could not retrieve product details.";
+        }
+    }
+
+    res.render('product', { 
+        title: product ? product.name : 'Product Not Found',
+        product: product,
+        error: error,
+        script: '/js/product-detail.js',
+        searchParams: searchQueryParams // Pass search params to template
+    });
+});
+
+// --- API Route for Document Content ---
+app.get('/api/document/:docId', async (req, res) => {
+    const docId = req.params.docId;
+    if (!documentCollection) {
+        return res.status(503).json({ error: 'Database connection (documents) not available.' });
+    }
+    try {
+        console.log(`Fetching document with _id: ${docId}`);
+        // Fetch the specific document by _id
+        const doc = await documentCollection.findOne({ _id: docId });
+
+        if (!doc) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        // Check format and parse Markdown if applicable
+        let htmlContent = '';
+        if (doc.format && doc.format.toLowerCase() === 'markdown' && doc.text) {
+            htmlContent = marked.parse(doc.text); // Use marked to convert MD to HTML
+        } else {
+            // Handle other formats or just return plain text (escaped)
+            htmlContent = `<pre>${doc.text || 'No content found.'}</pre>`;
+        }
+
+        res.json({
+            title: doc.title || 'Document',
+            htmlContent: htmlContent
+        });
+
+    } catch (e) {
+        console.error(`Error fetching document ${docId}:`, e);
+        res.status(500).json({ error: 'Failed to retrieve document content.' });
+    }
 });
 
 // --- Start Server ---
 // Use the updated initialization function
-initializeDbAndHierarchy().then(() => {
+initializeDbAndData().then(() => { // Renamed function call
     app.listen(port, () => {
         console.log(`Server listening at http://localhost:${port}`);
     });
 }).catch(err => {
-    console.error("Failed to initialize database and hierarchy before starting server:", err);
+    console.error("Failed to initialize database and data before starting server:", err);
     app.listen(port, () => {
         console.log(`Server listening at http://localhost:${port}, but initialization failed.`);
     });
