@@ -1,0 +1,372 @@
+/* Basic Styling */
+body {
+    font-family: sans-serif;
+    margin: 0; /* Remove default margin */
+    background-color: #f4f4f4;
+    /* Removed flex layout from body */
+}
+
+/* Navbar Styling */
+.navbar {
+    background-color: #333;
+    overflow: hidden;
+    padding: 0 10px; /* Add some horizontal padding */
+    display: flex; /* Use flexbox for nav items */
+    align-items: center; /* Vertically align items */
+}
+
+.nav-item {
+    float: left; /* Float items for horizontal layout (alternative to flex) */
+}
+
+.nav-item a, .dropbtn {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    font-size: 17px;
+}
+
+.nav-item a:hover, .dropdown:hover .dropbtn {
+    background-color: #ddd;
+    color: black;
+}
+
+/* Dropdown Container */
+.dropdown {
+    float: left;
+    overflow: hidden;
+}
+
+/* Dropdown Button */
+.dropdown .dropbtn {
+    border: none;
+    outline: none;
+    background-color: inherit;
+    font-family: inherit;
+    margin: 0;
+}
+
+/* Dropdown Content (Hidden by Default) */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+/* Links inside the dropdown */
+.dropdown-content a {
+    float: none;
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: left;
+}
+
+/* Add a grey background color to dropdown links on hover */
+.dropdown-content a:hover {
+    background-color: #ddd;
+}
+
+/* Show the dropdown menu on hover */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* Main Layout Container */
+.container {
+    display: flex;
+    min-height: calc(100vh - 50px); /* Full height minus navbar approx height */
+}
+
+/* Sidebar */
+#sidebar {
+    width: 250px; /* Adjust width as needed */
+    background-color: #f8f8f8;
+    border-right: 1px solid #ddd;
+    padding: 15px;
+    box-sizing: border-box;
+    height: calc(100vh - 50px); /* Match container height */
+    overflow-y: auto; /* Enable vertical scrolling */
+    position: sticky; /* Keep sidebar visible on scroll */
+    top: 50px; /* Stick below navbar (adjust if navbar height changes) */
+}
+
+/* Main Product Area */
+#main-product-area {
+    flex-grow: 1; /* Take remaining width */
+    padding: 20px;
+}
+
+/* Filter Info Section (within main area) */
+.filter-info {
+    background-color: #e9e9e9;
+    padding: 10px 15px;
+    margin-bottom: 20px; /* Adjusted margin */
+    border-radius: 4px;
+    font-size: 0.9em;
+    display: flex; /* Align items horizontally */
+    align-items: center;
+    flex-wrap: wrap; /* Allow items to wrap if needed */
+}
+
+.current-filter-label {
+    margin-right: 10px;
+    margin-bottom: 5px; /* Add space if wrapping */
+}
+
+.current-filter-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.current-filter-tag {
+    /* We want the X *inside* the button now */
+    background-color: #e0e0e0;
+    color: #555;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    display: inline-flex; 
+    align-items: center;
+}
+
+/* Style for the X link INSIDE the current tag */
+.current-filter-tag .clear-filter-x {
+    color: #a0a0a0; /* Make X grey */
+    text-decoration: none;
+    font-weight: bold;
+    margin-right: 4px; /* Space between X and tag text */
+    font-size: 1.1em;
+    line-height: 1; 
+}
+
+.current-filter-tag .clear-filter-x:hover {
+    color: #d9534f; /* Red on hover */
+}
+
+.current-filter-tag .tag {
+    /* Remove default tag styles that conflict */
+    background-color: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: inherit; /* Use parent font size */
+    color: inherit;
+    border-radius: 0;
+    display: inline; /* Let text flow */
+}
+
+/* Current filter for family/type (keep previous style) */
+.current-filter strong {
+    color: #0056b3;
+}
+.current-filter .clear-filter {
+    color: #d9534f; /* Red color for clear */
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 10px;
+}
+.current-filter .clear-filter:hover {
+    text-decoration: underline;
+}
+
+/* Available Tags Section (within sidebar) */
+.available-tags {
+    margin-bottom: 0; /* Remove bottom margin */
+    padding: 0; /* Remove padding */
+    background-color: transparent; /* Inherit sidebar background */
+    border: none; /* Remove border */
+}
+
+.available-tags strong {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.available-tags ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.available-tags li {
+    margin-bottom: 5px;
+}
+
+.available-tags .tag-link {
+    margin-right: 0; /* Remove right margin, handled by li */
+    display: block; /* Make link take full li width */
+}
+
+.available-tags .tag {
+     margin-bottom: 0; /* Remove bottom margin */
+     display: block; /* Make tag fill link */
+     text-align: left; /* Align text left */
+     width: 100%; /* Use full width */
+     box-sizing: border-box; /* Include padding in width */
+}
+
+.available-tags .tag-link.zero-count .tag {
+     background-color: #f0f0f0; 
+     color: #bbb; 
+     /* Keep strikethrough from previous rule */
+}
+.available-tags .tag-link.zero-count:hover .tag {
+    background-color: #f0f0f0;
+    color: #bbb;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-top: 0; /* Remove margin if navbar is present */
+}
+
+.error {
+    color: red;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Product Grid Layout */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid */
+    gap: 20px;
+    margin-top: 20px;
+}
+
+/* Product Card Styling */
+.product-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card h2 {
+    font-size: 1.2em;
+    margin-top: 0;
+    color: #0056b3;
+}
+
+/* Product Meta Info (Family/Type) */
+.product-meta {
+    font-size: 0.85em;
+    color: #777;
+    margin-top: 15px; /* Add space above */
+    border-top: 1px solid #eee; /* Separator line */
+    padding-top: 10px;
+}
+
+.product-meta dl {
+    margin: 0;
+    padding: 0;
+}
+
+.product-meta dt {
+    font-weight: bold;
+    color: #555;
+    float: left;
+    clear: left;
+    width: 50px; /* Adjust as needed */
+    margin-right: 10px;
+    text-align: right;
+}
+
+.product-meta dd {
+    margin: 0 0 5px 60px; /* Match dt width + margin-right */
+    padding: 0;
+}
+
+.product-meta .meta-link {
+    color: #555;
+    text-decoration: none;
+}
+
+.product-meta .meta-link:hover {
+    text-decoration: underline;
+    color: #0056b3;
+}
+
+.product-image {
+    max-width: 100%;
+    height: 150px; /* Fixed height for consistency */
+    object-fit: contain; /* Scale image while preserving aspect ratio */
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.product-image.placeholder {
+    background-color: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #aaa;
+    font-style: italic;
+}
+
+.product-card p {
+    font-size: 0.9em;
+    color: #555;
+    flex-grow: 1; /* Make description take available space */
+}
+
+.product-card .price {
+    font-weight: bold;
+    color: #333;
+    margin-top: auto; /* Push price and tags to the bottom */
+}
+
+.tags {
+    margin-top: 10px;
+}
+
+.tag {
+    display: inline-block;
+    background-color: #e0e0e0;
+    color: #555;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+/* Style for tag links (remove default link styling) */
+.tag-link {
+    text-decoration: none;
+}
+
+.tag-link:hover .tag {
+    background-color: #c0c0c0; /* Slightly darker on hover */
+    color: #333;
+}
+
+/* Style for tags with zero dynamic count or already selected */
+.tag-link.zero-count {
+    cursor: default; /* Indicate not clickable */
+    pointer-events: none; /* Disable click events */
+}
+
+.tag-link.zero-count .tag {
+    background-color: #f0f0f0; /* Lighter grey */
+    color: #bbb; /* Dimmed text */
+    text-decoration: line-through; /* Strikethrough */
+}
+
+.tag-link.zero-count:hover .tag {
+    background-color: #f0f0f0; /* Keep same on hover */
+    color: #bbb;
+} 
