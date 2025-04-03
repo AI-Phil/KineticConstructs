@@ -76,6 +76,9 @@
             </div>
 
             <div id="main-product-area" class="search-results-area">
+                <%# Button to toggle sidebar visibility on mobile %>
+                <button id="toggle-filters-btn" class="mobile-only-button">Show Filters</button>
+                
                 <div class="filter-info">
                     <%# Current filter display will go here %>
                      <% if (currentTags && currentTags.length > 0) { %>
@@ -110,12 +113,13 @@
                 <% } else if (products && products.length > 0) { %>
                     <div class="product-grid">
                          <% products.forEach(product => { %>
-                            <%# Link entire card to product detail page, preserving search query %>
+                            <%# OLD: <a href="..." class="product-card-link"> %>
                             <% 
                                 const productLinkParams = new URLSearchParams(queryParams || '');
+                                const productUrl = `/product/${product._id}?${productLinkParams.toString()}`;
                             %>
-                            <a href="/product/<%= product._id %>?<%= productLinkParams.toString() %>" class="product-card-link">
-                                <div class="product-card" > <%# Removed data-product %>
+                            <%# NEW STRUCTURE: Div is the grid item, made clickable via JS/data-href %>
+                            <div class="product-card product-card-link" data-href="<%= productUrl %>"> 
                                     <h2><%= product.name %></h2>
                                     <% if (product.image_url) { %>
                                         <img src="<%= product.image_url %>" alt="<%= product.name %>" class="product-image">
@@ -125,31 +129,27 @@
                                     <p><%= product.description %></p>
                                     <p class="price">Price: <%= product.price?.currency %> <%= product.price?.amount %></p>
                                     
-                                    <%# Tags are now clickable to filter %>
                                     <% if (product.tags && product.tags.length > 0) { %>
-                                        <div class="tags">
+                                        <div class="tags"> 
                                             <% product.tags.slice(0, 5).forEach(tag => { %>
                                                 <% 
-                                                    // Create URL to ADD this tag (clearing family/type)
                                                     const cardTagLinkParams = new URLSearchParams();
-                                                    // No need to preserve existing tags when clicking from card for simplicity
                                                     cardTagLinkParams.append('tag', tag);
                                                 %>
+                                                <%# These links should still work independently %>
                                                 <a href="/search?<%= cardTagLinkParams.toString() %>" class="tag-link"><span class="tag"><%= tag %></span></a>
                                             <% }); %>
                                             <% if(product.tags.length > 5) { %> <span class="tag-more">...</span> <% } %>
                                         </div>
                                     <% } %>
 
-                                    <%# Family/Type not clickable here %>
                                     <div class="product-meta">
                                         <dl>
                                             <dt>Family:</dt><dd><%= product.family %></dd>
                                             <dt>Type:</dt><dd><%= product.product_type %></dd>
                                         </dl>
                                     </div>
-                                </div>
-                            </a>
+                            </div> <%# Removed surrounding <a> tag %>
                         <% }); %>
                     </div>
                 <% } else { %>
