@@ -9,25 +9,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageModalCaption = document.getElementById('imageModalCaption');
     const imageModalCloseBtn = document.getElementById('imageModalCloseBtn');
 
+    // Get initial doc ID from EJS (if provided)
+    const initialDocId = docViewerContent.closest('.product-detail-doc-display').dataset.initialDocId; 
+
+    // Highlight initial doc link if applicable
+    if (initialDocId && docLinksContainer) {
+        const initialLink = docLinksContainer.querySelector(`.doc-link[data-doc-id="${initialDocId}"]`);
+        if (initialLink) {
+            initialLink.classList.add('active');
+            docViewerTitle.style.display = 'block'; // Ensure title is shown if initial content loaded
+        } else {
+             // If initialDocId from query is invalid (not in product list), clear server-rendered content
+             docViewerTitle.textContent = 'Select a document';
+             docViewerTitle.style.display = 'none'; // Hide title if no doc selected
+             docViewerContent.innerHTML = '<p>Select a document from the list to view its content.</p>';
+        }
+    }
+
     if (docLinksContainer) {
         docLinksContainer.addEventListener('click', async (event) => {
             const docLink = event.target.closest('.doc-link');
             if (docLink) {
                 event.preventDefault();
                 const docId = docLink.getAttribute('data-doc-id');
+                const docTitle = docLink.textContent || docId; // Get title from link text
                 
-                // Visually indicate active link (optional)
+                // Visually indicate active link
                 docLinksContainer.querySelectorAll('.doc-link').forEach(link => link.classList.remove('active'));
                 docLink.classList.add('active');
 
-                await loadDocumentation(docId);
+                // Fetch and load content
+                await loadDocumentation(docId, docTitle);
+
+                // Update URL with history.pushState
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('doc', docId);
+                history.pushState({ docId: docId, docTitle: docTitle }, docTitle, currentUrl.toString());
             }
         });
     }
 
     // Function to fetch and display documentation in the right panel
-    async function loadDocumentation(docId) {
-        docViewerTitle.textContent = 'Loading...';
+    async function loadDocumentation(docId, docTitleFromLink = null) {
+        const displayTitle = docTitleFromLink || 'Loading...'; // Use link text or Loading...
+        docViewerTitle.textContent = displayTitle;
+        docViewerTitle.style.display = 'block'; // Always show title when loading
         docViewerContent.innerHTML = '<p>Loading...</p>';
 
         try {
@@ -37,8 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const data = await response.json();
 
-            docViewerTitle.textContent = data.title || 'Documentation';
-            docViewerTitle.style.display = 'block';
+            // Use title from API response if available, otherwise keep title from link
+            docViewerTitle.textContent = data.title || displayTitle; 
             docViewerContent.innerHTML = data.htmlContent;
 
         } catch (error) {
@@ -47,6 +73,29 @@ document.addEventListener('DOMContentLoaded', () => {
             docViewerContent.innerHTML = '<p>Could not load document content. Please try again later.</p>';
         }
     }
+
+    // Handle Back/Forward navigation
+    window.addEventListener('popstate', async (event) => {
+        const state = event.state;
+        if (state && state.docId) {
+            // Load document based on the state
+            await loadDocumentation(state.docId, state.docTitle);
+            // Update active link
+            if (docLinksContainer) {
+                docLinksContainer.querySelectorAll('.doc-link').forEach(link => link.classList.remove('active'));
+                const activeLink = docLinksContainer.querySelector(`.doc-link[data-doc-id="${state.docId}"]`);
+                if (activeLink) activeLink.classList.add('active');
+            }
+        } else {
+            // No state or docId in state - likely navigated back to the base product page
+            docViewerTitle.textContent = 'Select a document';
+            docViewerTitle.style.display = 'none';
+            docViewerContent.innerHTML = '<p>Select a document from the list to view its content.</p>';
+            if (docLinksContainer) {
+                docLinksContainer.querySelectorAll('.doc-link').forEach(link => link.classList.remove('active'));
+            }
+        }
+    });
 
     // --- Image Modal Logic --- 
     if (productImage && imageModal && imageModalImg && imageModalCloseBtn) {

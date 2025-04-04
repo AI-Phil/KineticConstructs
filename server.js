@@ -207,29 +207,49 @@ app.get('/search', async (req, res) => {
 app.get('/product/:productId', async (req, res) => {
     const productId = req.params.productId;
     const searchQueryParams = req.query; // Capture the incoming query params
+    const requestedDocId = req.query.doc; // Get requested doc ID from query
+
     let product = null;
+    let initialDocContent = null; // Variable to hold initial doc content
+    let initialDocTitle = null;
     let error = null;
 
-    if (!productCollection) {
+    if (!productCollection || !documentCollection) { // Check both collections
         error = "Database connection error.";
     } else {
         try {
             console.log(`Fetching product with _id: ${productId}`);
             product = await productCollection.findOne({ _id: productId });
+            
             if (product) {
-                 // Add document titles to the product object
+                // Add document titles to the product object
                 product.documentation = [];
                 if (product.documentation_ids && Array.isArray(product.documentation_ids)) {
                     product.documentation = product.documentation_ids
                         .map(id => ({ id: id, title: docTitleMap.get(id) || id }))
                         .sort((a, b) => a.title.localeCompare(b.title)); 
                 }
+
+                // Fetch initial document content if doc ID is provided and valid
+                if (requestedDocId && product.documentation.some(doc => doc.id === requestedDocId)) {
+                    console.log(`Fetching initial document content for docId: ${requestedDocId}`);
+                    const docData = await documentCollection.findOne({ _id: requestedDocId }, {
+                        projection: { content: 1, title: 1 } // Fetch content and title
+                    });
+                    if (docData && docData.content) {
+                        initialDocContent = marked(docData.content); // Render markdown
+                        initialDocTitle = docData.title || requestedDocId; // Use title or ID
+                    } else {
+                        console.warn(`Initial document ${requestedDocId} not found or has no content.`);
+                        // Optional: could set an error message specific to doc loading
+                    }
+                }
             } else {
                 error = "Product not found.";
             }
         } catch(e) {
-            console.error(`Error fetching product ${productId}:`, e);
-            error = "Could not retrieve product details.";
+            console.error(`Error fetching product ${productId} or document ${requestedDocId}:`, e);
+            error = "Could not retrieve product details or document.";
         }
     }
 
@@ -238,7 +258,10 @@ app.get('/product/:productId', async (req, res) => {
         product: product,
         error: error,
         script: '/js/product-detail.js',
-        searchParams: searchQueryParams // Pass search params to template
+        searchParams: searchQueryParams,
+        initialDocContent: initialDocContent, // Pass initial content
+        initialDocTitle: initialDocTitle,     // Pass initial title
+        initialDocId: requestedDocId          // Pass the requested ID for potential highlighting
     });
 });
 

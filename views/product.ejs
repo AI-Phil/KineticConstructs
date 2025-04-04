@@ -55,9 +55,17 @@
                 </div>
 
                 <%# Right Column: Doc Viewer %>
-                <div class="product-detail-doc-display">
-                    <div id="docViewerTitle">Select a document to view</div>
-                    <div id="docViewerContent"></div>
+                <div class="product-detail-doc-display" data-initial-doc-id="<%= typeof initialDocId !== 'undefined' ? initialDocId : '' %>">
+                    <%# Display initial doc title if available %>
+                    <h2 id="docViewerTitle"><%= typeof initialDocTitle !== 'undefined' && initialDocTitle ? initialDocTitle : 'Select a document' %></h2>
+                    <%# Display initial doc content if available, otherwise show placeholder %>
+                    <div id="docViewerContent">
+                        <% if (typeof initialDocContent !== 'undefined' && initialDocContent) { %>
+                            <%- initialDocContent %> <%# Use unescaped output for HTML %>
+                        <% } else { %>
+                            <p>Select a document from the list to view its content.</p>
+                        <% } %>
+                    </div>
                 </div>
             </div>
         <% } %>

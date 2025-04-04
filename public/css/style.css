@@ -850,3 +850,34 @@ h1 {
          display: block; 
     } */
 }
+
+/* Product Detail Page Responsive Adjustments */
+@media (max-width: 768px) {
+    .product-detail-container {
+        flex-direction: column; /* Stack info and docs */
+    }
+
+    .product-detail-info,
+    .product-detail-doc-display {
+        width: 100%; /* Both take full width */
+        border-left: none; /* Remove border from doc display */
+        padding-left: 0; /* Remove padding from doc display */
+        border-bottom: 1px solid #ddd; /* Add border below info */
+        margin-bottom: 20px; /* Space below info */
+        height: auto; /* Let height be natural */
+        position: static; /* Remove sticky positioning */
+        top: auto; /* Reset sticky offset */
+        overflow-y: visible; /* Remove internal scroll */
+    }
+
+    .product-detail-doc-display {
+        border-bottom: none; /* No border needed below the last item */
+        margin-bottom: 0;
+    }
+    
+    /* Adjust image size if needed */
+    .product-detail-image {
+        max-width: 150px; 
+        max-height: 150px;
+    }
+}
