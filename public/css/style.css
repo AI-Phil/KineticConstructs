@@ -8,7 +8,7 @@ body {
 
 /* Add padding to main to account for sticky header */
 main {
-    padding-top: 50px; /* Adjust to match header height */
+
 }
 
 /* Navbar Styling */
@@ -83,29 +83,31 @@ main {
     display: block;
 }
 
-/* Main Layout Container */
-.container {
+/* Main Layout Container - Specific to Search Page */
+.search-container { /* Changed selector from .container */
     display: flex;
     /* min-height: calc(100vh - 50px); */ /* Remove this - padding-top on main handles offset */
 }
 
 /* Sidebar */
 #sidebar {
-    width: 250px; /* Adjust width as needed */
+    width: 280px; /* Wider sidebar for filters */
     background-color: #f8f8f8;
     border-right: 1px solid #ddd;
     padding: 15px;
     box-sizing: border-box;
-    /* height: calc(100vh - 50px); */ /* REMOVE explicit height */
+    /* height: calc(100vh - 50px); */ /* REMOVED explicit height */
     overflow-y: auto; 
     position: sticky; 
-    top: 0; /* Stick relative to padded main */
+    top: 50px; /* Adjust based on header height */
 }
 
 /* Main Product Area */
 #main-product-area {
     flex-grow: 1; /* Take remaining width */
     padding: 20px;
+    background-color: #fff; /* Add background color */
+    min-width: 0; /* Help flexbox calculate width correctly */
 }
 
 /* Filter Info Section (within main area) */
@@ -880,4 +882,153 @@ h1 {
         max-width: 150px; 
         max-height: 150px;
     }
+}
+
+/* Homepage Specific Styles */
+.hero {
+    position: relative;
+    height: 60vh; /* Adjust height as needed */
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center content horizontally */
+    text-align: center;
+    color: #fff; /* White text for contrast on dark image */
+    padding: 0 20px; /* Add some padding */
+}
+
+.hero::before { /* Add a dark overlay for better text readability */
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Adjust opacity as needed */
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2; /* Ensure content is above the overlay */
+    max-width: 800px; /* Limit content width */
+    margin: 0 auto; /* Center content block */
+}
+
+.hero h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    color: #fff; /* Ensure h1 is white */
+    font-weight: bold;
+}
+
+.hero h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    font-weight: 300; /* Lighter weight for tagline */
+    color: #eee; /* Slightly off-white */
+}
+
+.hero p {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    color: #ddd;
+}
+
+.hero .btn-primary { /* Style the hero button */
+    background-color: #007bff; /* Example primary color */
+    border-color: #007bff;
+    color: #fff;
+    padding: 12px 25px;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.hero .btn-primary:hover {
+    background-color: #0056b3; /* Darker shade on hover */
+    border-color: #0056b3;
+}
+
+/* General Section Styling */
+.section-padding {
+    padding: 60px 20px; /* Add padding top/bottom and left/right */
+}
+
+.content-container { /* Renamed from .container to avoid conflict */
+    max-width: 1140px; /* Standard container width */
+    margin: 0 auto; /* Center container */
+    padding: 0 15px; /* Add padding inside container */
+    display: block; /* Default display for simple content containers */
+}
+
+.bg-light {
+    background-color: #f8f9fa; /* Light background color */
+}
+
+section h2 { /* General styling for section titles */
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 40px;
+    color: #333;
+}
+
+/* Mission Section */
+.mission-section {
+    text-align: center;
+}
+
+.mission-section p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #555;
+    max-width: 800px; /* Limit text width */
+    margin: 0 auto; /* Center paragraph */
+}
+
+
+/* Product Families Section */
+.families-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid */
+    gap: 30px; /* Space between cards */
+}
+
+.family-card {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.family-card:hover {
+    transform: translateY(-5px); /* Slight lift on hover */
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.family-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #0056b3; /* Example accent color */
+}
+
+.family-card p {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #666;
+}
+
+
+/* Existing Product Grid Layout */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid */
+    gap: 20px;
+    margin-top: 20px;
 }

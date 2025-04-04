@@ -10,11 +10,53 @@
     <%- include('partials/header') %>
 
     <main>
-        <div class="home-content">
-            <h1>Welcome to Kinetic Constructs!</h1>
-            <p>Explore our innovative and educational building kits.</p>
-            <p><a href="/search" class="btn">Browse Products</a></p>
-        </div> 
+        <!-- Hero Section -->
+        <section class="hero" style="background-image: url('/images/hero-background.png');">
+            <div class="hero-content">
+                <h1>Kinetic Constructs</h1>
+                <h2>Building Tomorrow's Play.</h2>
+                <p>Inspiring creativity, problem-solving, and collaborative play through innovative, interactive, and educational toys.</p>
+                <a href="/search" class="btn btn-primary">Explore Our Kits</a>
+            </div>
+        </section>
+
+        <!-- Mission Section -->
+        <section class="mission-section section-padding">
+            <div class="content-container">
+                <h2>Our Mission</h2>
+                <p>To inspire creativity, problem-solving, and collaborative play through innovative, interactive, and educational toys that blend physical construction with digital integration. We focus on STEAM principles, high-quality materials, robust electronics, and engaging software experiences.</p>
+            </div>
+        </section>
+
+        <!-- Product Families Section -->
+        <section class="product-families-section section-padding bg-light">
+            <div class="content-container">
+                <h2>Discover Our Worlds of Play</h2>
+                <div class="families-grid">
+                    <div class="family-card">
+                        <h3>ConstructoBots</h3>
+                        <p>Buildable, programmable robots focusing on mechanics, electronics, and coding.</p>
+                    </div>
+                    <div class="family-card">
+                        <h3>LogicLeaps</h3>
+                        <p>Electronic learning kits centered on circuits, coding principles, and logic.</p>
+                    </div>
+                    <div class="family-card">
+                        <h3>ImagiWorlds</h3>
+                        <p>Interactive playsets blending physical structures with smart elements and AR features.</p>
+                    </div>
+                    <div class="family-card">
+                        <h3>KinetiKits</h3>
+                        <p>Advanced kinetic sets focused on complex mechanical motion and physics.</p>
+                    </div>
+                    <div class="family-card">
+                        <h3>CreatiSpark</h3>
+                        <p>Digital/Electronic creative tools like animation tablets and simple 3D printers.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <%- include('partials/footer') %>
