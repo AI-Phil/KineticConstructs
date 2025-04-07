@@ -5,11 +5,12 @@ from dotenv import load_dotenv
 from astrapy import DataAPIClient
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(override=True)
 
 # --- AstraDB Credentials (Loaded from .env) ---
 ASTRA_DB_TOKEN = os.getenv("ASTRA_DB_TOKEN") 
 ASTRA_DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
+ASTRA_CLIENT_KWARGS_JSON = os.getenv("ASTRA_CLIENT_KWARGS") # Optional JSON string for extra client kwargs
 # --- ---
 
 ASTRA_DB_COLLECTION = "documents" # Target the 'documents' collection
@@ -23,7 +24,19 @@ def load_documents():
 
     # Initialize the client
     print(f"Connecting to AstraDB: {ASTRA_DB_API_ENDPOINT}")
-    client = DataAPIClient(ASTRA_DB_TOKEN)
+    
+    # Prepare optional kwargs for the client from environment variable
+    client_kwargs = {}
+    if ASTRA_CLIENT_KWARGS_JSON:
+        try:
+            client_kwargs = json.loads(ASTRA_CLIENT_KWARGS_JSON)
+            print(f"Using additional client kwargs: {client_kwargs}")
+        except json.JSONDecodeError as e:
+            print(f"Warning: Could not parse ASTRA_CLIENT_KWARGS as JSON: {e}")
+            print(f"         Value was: {ASTRA_CLIENT_KWARGS_JSON}")
+
+    # Initialize the client
+    client = DataAPIClient(ASTRA_DB_TOKEN, **client_kwargs) 
     db = client.get_database(ASTRA_DB_API_ENDPOINT)
     collection = db.get_collection(ASTRA_DB_COLLECTION)
     print(f"Connected to collection: '{ASTRA_DB_COLLECTION}'")
