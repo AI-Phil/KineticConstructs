@@ -1032,3 +1032,29 @@ section h2 { /* General styling for section titles */
     gap: 20px;
     margin-top: 20px;
 }
+
+/* Sidebar Search Box Styling */
+.vector-search-box {
+    margin-bottom: 1.5rem; /* Add some space below the search box section */
+}
+
+.vector-search-form-sidebar input[type="search"] {
+    display: block; /* Stack vertically */
+    width: 100%;    /* Use full available width */
+    margin-bottom: 0.5rem; /* Space between input and button */
+    padding: 0.5rem; /* Add some padding */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.vector-search-form-sidebar button {
+    display: block; /* Stack vertically */
+    width: 100%;    /* Use full available width */
+    padding: 0.6rem; /* Adjust padding as needed */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+/* Adjustments for filter sections below search */
+.search-sidebar > h2 {
+    /* Optional: Adjust margin if needed after adding search box */
+    /* margin-top: 0; */
+}

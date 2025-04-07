@@ -143,82 +143,170 @@ app.get('/', (req, res) => {
     res.render('home', { title: 'Welcome' });
 });
 
-// Search Page
+// Search Page (Handles Vector Search + Filtering)
 app.get('/search', async (req, res) => {
+    const queryText = req.query.q; // Vector search query
     const requestedFamily = req.query.family;
     const requestedType = req.query.type;
     let requestedTags = req.query.tag || [];
     if (typeof requestedTags === 'string') requestedTags = [requestedTags];
-
-    // Build the filter using $and if multiple criteria exist
-    const filterConditions = [];
-
-    // Add family/type filter if present
-    if (requestedFamily) {
-        const familyTypeFilter = { family: requestedFamily };
-        if (requestedType) {
-            familyTypeFilter.product_type = requestedType;
-        }
-        filterConditions.push(familyTypeFilter);
-    }
-
-    // Add tag filter if present
-    if (requestedTags.length > 0) {
-        filterConditions.push({ tags: { $all: requestedTags } });
-    }
-
-    // Construct the final filter object
-    let filter = {};
-    if (filterConditions.length > 1) {
-        filter = { $and: filterConditions };
-    } else if (filterConditions.length === 1) {
-        filter = filterConditions[0];
-    } // If filterConditions is empty, filter remains {} which finds all
-
+    
+    const minSimilarity = 0.7; // From vector search branch
     let products = [];
     let error = null;
+    let initialVectorResults = null; 
+    let similarityMap = new Map(); 
 
     if (!productCollection) {
         error = "Database connection error.";
     } else {
         try {
-            console.log(`Querying products with filter: ${JSON.stringify(filter)}`);
-            const cursor = await productCollection.find(filter);
-            products = await cursor.toArray();
-            console.log(`Fetched ${products.length} products.`);
-        } catch (e) {
-            console.error("Error fetching products:", e);
+            // --- Stage 1: Perform Vector Search if queryText exists --- 
+            if (queryText) {
+                console.log(`Performing initial vector search for: "${queryText}"`);
+                const vectorCursor = await productCollection.find(
+                    {}, 
+                    { 
+                        sort: { $vectorize: queryText }, 
+                        includeSimilarity: true 
+                    }
+                );
+                initialVectorResults = await vectorCursor.toArray();
+                
+                const vectorFilteredResults = initialVectorResults.filter(prod => 
+                    prod && typeof prod.$similarity === 'number' && prod.$similarity >= minSimilarity
+                );
+                
+                vectorFilteredResults.forEach(prod => {
+                    similarityMap.set(prod._id, prod.$similarity);
+                });
+
+                const vectorProductIds = vectorFilteredResults.map(prod => prod._id);
+                
+                console.log(`Initial vector search found ${initialVectorResults.length} results, ${vectorProductIds.length} IDs passed similarity filter.`);
+
+                if (vectorProductIds.length === 0) {
+                    console.log('No vector results passed similarity, skipping metadata filter.');
+                    products = []; 
+                } else {
+                    // --- Stage 2: Build Combined Filter (Vector IDs + Metadata) --- 
+                    // Use refined filter logic from HEAD, starting with vector IDs
+                    const filterConditions = [{ _id: { $in: vectorProductIds } }]; // Start with vector results IDs
+                    
+                    // Add family/type filter if present
+                    if (requestedFamily) {
+                        const familyTypeFilter = { family: requestedFamily };
+                        if (requestedType) {
+                            familyTypeFilter.product_type = requestedType;
+                        }
+                        filterConditions.push(familyTypeFilter);
+                    }
+
+                    // Add tag filter if present
+                    if (requestedTags.length > 0) {
+                        filterConditions.push({ tags: { $all: requestedTags } });
+                    }
+
+                    // Construct the final filter object for this stage
+                    let combinedFilter = {};
+                    if (filterConditions.length > 1) {
+                        // More than just _id filter means we need $and
+                        combinedFilter = { $and: filterConditions };
+                    } else {
+                        // Only _id filter present
+                        combinedFilter = filterConditions[0]; 
+                    }
+                    
+                    console.log(`Querying products with combined filter: ${JSON.stringify(combinedFilter)}`);
+                    const cursor = await productCollection.find(combinedFilter); // Use combinedFilter
+                    products = await cursor.toArray(); 
+                    console.log(`Combined filter fetched ${products.length} products.`);
+                    
+                    products.forEach(prod => {
+                        if (similarityMap.has(prod._id)) {
+                            prod.$similarity = similarityMap.get(prod._id);
+                        }
+                    });
+                    products.sort((a, b) => (b.$similarity || 0) - (a.$similarity || 0));
+                }
+
+            } else {
+                // --- Stage 1 (No Vector Query): Build Metadata Filter Only --- 
+                 // Use refined filter logic from HEAD
+                const filterConditions = [];
+
+                if (requestedFamily) {
+                    const familyTypeFilter = { family: requestedFamily };
+                    if (requestedType) {
+                        familyTypeFilter.product_type = requestedType;
+                    }
+                    filterConditions.push(familyTypeFilter);
+                }
+
+                if (requestedTags.length > 0) {
+                    filterConditions.push({ tags: { $all: requestedTags } });
+                }
+
+                let metadataFilter = {};
+                if (filterConditions.length > 1) {
+                    metadataFilter = { $and: filterConditions };
+                } else if (filterConditions.length === 1) {
+                    metadataFilter = filterConditions[0];
+                }
+                
+                console.log(`Querying products with metadata filter: ${JSON.stringify(metadataFilter)}`);
+                const cursor = await productCollection.find(metadataFilter); // Use metadataFilter
+                products = await cursor.toArray(); 
+                console.log(`Metadata filter fetched ${products.length} products.`);
+            }
+        
+        } catch (e) { 
+            console.error("Error during search:", e); // Keep generic error message
             error = "Could not retrieve products.";
             products = [];
         }
     }
 
-    // Reinstated client-side tag counting
+    // --- Dynamic Tag Counts & Hierarchy (Recalculate based on final products) --- 
     const dynamicTagCounts = new Map();
+    const displayHierarchy = {}; 
+
     if (!error) {
         products.forEach(product => {
+            // Count Tags
             if (product.tags && Array.isArray(product.tags)) {
                 product.tags.forEach(tag => dynamicTagCounts.set(tag, (dynamicTagCounts.get(tag) || 0) + 1));
             }
+            // Build Dynamic Hierarchy
+            const family = product.family;
+            const productType = product.product_type;
+            if (family && productType && productType !== 'Consumables' && productType !== 'Accessory') {
+                if (!displayHierarchy[family]) {
+                    displayHierarchy[family] = {};
+                }
+                displayHierarchy[family][productType] = true; 
+            }
         });
+        // Sort dynamic hierarchy (optional)
+        // ... sorting logic ... 
     }
-
-    // Use the client-side calculated counts
     const displayTags = tagsByFrequency.map(tagInfo => ({
         tag: tagInfo.tag,
         dynamicCount: dynamicTagCounts.get(tagInfo.tag) || 0
     }));
+    // --- End Dynamic Calculations --- 
 
-    res.render('search', {
-        title: 'Search Products',
-        products: products,
-        error: error,
-        hierarchy: productHierarchy,
-        displayTags: displayTags,
+    res.render('search', { 
+        // Use title logic from vector search branch
+        title: queryText ? `Search Results for "${queryText}"` : 'Search Products',
+        products: products, 
+        error: error, 
+        hierarchy: displayHierarchy, // Pass dynamic hierarchy
+        displayTags: displayTags, 
         currentFamily: requestedFamily,
         currentType: requestedType,
         currentTags: requestedTags,
-        queryParams: req.query
+        queryParams: req.query // Pass original query params
     });
 });
 
