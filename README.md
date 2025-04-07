@@ -75,7 +75,7 @@ Follow these steps to set up the project environment.
     uv run python load_documents_astra.py
     cd ..
     ```
-    These scripts will create and populate the `products` and `product_documents` collections in your Astra DB based on the data in `creation-assets/products/`. Wait for both scripts to complete.
+    These scripts will create and populate the `products` and `documents` collections in your Astra DB based on the data in `creation-assets/products/`. Wait for both scripts to complete.
 
 ## Running the Basic Catalog Application
 
