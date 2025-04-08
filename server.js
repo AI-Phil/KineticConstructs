@@ -147,16 +147,33 @@ app.get('/', (req, res) => {
 app.get('/search', async (req, res) => {
     const requestedFamily = req.query.family;
     const requestedType = req.query.type;
-    let requestedTags = req.query.tag || []; 
+    let requestedTags = req.query.tag || [];
     if (typeof requestedTags === 'string') requestedTags = [requestedTags];
 
-    const filter = {};
-    if (requestedTags.length > 0) {
-        filter.tags = { $all: requestedTags }; 
-    } else if (requestedFamily) { 
-        filter.family = requestedFamily;
-        if (requestedType) filter.product_type = requestedType;
+    // Build the filter using $and if multiple criteria exist
+    const filterConditions = [];
+
+    // Add family/type filter if present
+    if (requestedFamily) {
+        const familyTypeFilter = { family: requestedFamily };
+        if (requestedType) {
+            familyTypeFilter.product_type = requestedType;
+        }
+        filterConditions.push(familyTypeFilter);
     }
+
+    // Add tag filter if present
+    if (requestedTags.length > 0) {
+        filterConditions.push({ tags: { $all: requestedTags } });
+    }
+
+    // Construct the final filter object
+    let filter = {};
+    if (filterConditions.length > 1) {
+        filter = { $and: filterConditions };
+    } else if (filterConditions.length === 1) {
+        filter = filterConditions[0];
+    } // If filterConditions is empty, filter remains {} which finds all
 
     let products = [];
     let error = null;
@@ -167,15 +184,16 @@ app.get('/search', async (req, res) => {
         try {
             console.log(`Querying products with filter: ${JSON.stringify(filter)}`);
             const cursor = await productCollection.find(filter);
-            products = await cursor.toArray(); 
+            products = await cursor.toArray();
             console.log(`Fetched ${products.length} products.`);
-        } catch (e) { 
+        } catch (e) {
             console.error("Error fetching products:", e);
             error = "Could not retrieve products.";
-            products = []; 
+            products = [];
         }
     }
 
+    // Reinstated client-side tag counting
     const dynamicTagCounts = new Map();
     if (!error) {
         products.forEach(product => {
@@ -185,21 +203,22 @@ app.get('/search', async (req, res) => {
         });
     }
 
-    const displayTags = tagsByFrequency.map(tagInfo => ({ // Map ALL tags
+    // Use the client-side calculated counts
+    const displayTags = tagsByFrequency.map(tagInfo => ({
         tag: tagInfo.tag,
         dynamicCount: dynamicTagCounts.get(tagInfo.tag) || 0
     }));
 
-    res.render('search', { 
-        title: 'Search Products', 
-        products: products, 
-        error: error, 
-        hierarchy: productHierarchy, 
-        displayTags: displayTags, 
+    res.render('search', {
+        title: 'Search Products',
+        products: products,
+        error: error,
+        hierarchy: productHierarchy,
+        displayTags: displayTags,
         currentFamily: requestedFamily,
         currentType: requestedType,
         currentTags: requestedTags,
-        queryParams: req.query // Pass original query params for link generation
+        queryParams: req.query
     });
 });
 
