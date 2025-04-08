@@ -105,64 +105,74 @@
                 
                 <%# --- Combined Filter/Search Info --- %>
                 <div class="filter-info">
-                    <%# Show vector search query if present %>
-                     <% if (queryParams && queryParams.q) { %>
-                        <h2 class="search-results-heading">Search results for: "<%= queryParams.q %>"</h2>
-                        <%# Link to clear ONLY vector search, keep filters %>
-                        <% 
-                            const clearVectorParams = new URLSearchParams(queryParams || '');
-                            clearVectorParams.delete('q');
-                        %>
-                        <a href="/search?<%= clearVectorParams.toString() %>" class="clear-filter clear-vector-search" title="Clear search term, keep filters">(Clear Search Term)</a>
-                    <% } %>
-
-                    <%# Use HEAD's filter display logic %>
                     <% 
-                        // Check if any *metadata* filters are active
+                        let hasVectorQuery = queryParams && queryParams.q;
                         let hasMetadataFilters = currentFamily || currentType || (currentTags && currentTags.length > 0);
                     %>
-                    <% if (hasMetadataFilters) { %>
+
+                    <% if (hasVectorQuery || hasMetadataFilters) { %>
                         <div class="current-filter-summary">
-                            <%# Global Clear All (clears vector search AND metadata filters) %>
-                            <a href="/search" class="clear-all-icon" title="Clear search term and all filters">&#x274C;</a> 
+                            <%# --- Global Clear Icon (Always shown if any filter/query active) --- %>
+                            <a href="/search" class="clear-all-icon" title="Clear search and all filters">&#x274C;</a> 
 
-                            <span class="current-filter-label">Filtering by:</span>
-
-                            <% if (currentFamily) { %> 
-                                <span class="active-filter-pill category-filter-pill">
-                                    <%= currentFamily %><% if (currentType) { %> &gt; <%= currentType %><% } %>
+                            <%# --- Display Labels and Pills --- %>
+                            <% if (hasVectorQuery) { %>
+                                <span class="current-filter-label">Searching for:</span>
+                                <span class="active-filter-pill query-filter-pill">
+                                    "<%= queryParams.q %>"
+                                    <%# Link to clear ONLY vector search, keep filters %>
                                     <% 
-                                        // Remove category, keep vector query and tags
-                                        const removeCategoryParams = new URLSearchParams(queryParams || '');
-                                        removeCategoryParams.delete('family');
-                                        removeCategoryParams.delete('type');
+                                        const clearVectorParams = new URLSearchParams(queryParams || '');
+                                        clearVectorParams.delete('q');
                                     %>
-                                    <a href="/search?<%= removeCategoryParams.toString() %>" class="clear-filter-x" title="Remove category filter">&#x2716;</a>
-                                </span> 
-                                <% if (currentTags && currentTags.length > 0) { %><span class="filter-separator"> &nbsp; </span><% } %>
-                            <% } %>
-                            
-                            <% if (currentTags && currentTags.length > 0) { %>
-                                <span class="filter-part tags-filter-part">
-                                    <% currentTags.forEach((tag, index) => { %>
-                                        <span class="active-tag-pill active-filter-pill">
-                                            <%= tag %>
-                                            <% 
-                                                // Remove tag, keep vector query and category/type
-                                                const removeTagUrlParams = new URLSearchParams(queryParams || ''); 
-                                                const tagsToKeep = currentTags.filter(t => t !== tag);
-                                                removeTagUrlParams.delete('tag'); 
-                                                tagsToKeep.forEach(t => removeTagUrlParams.append('tag', t));
-                                            %>
-                                            <a href="/search?<%= removeTagUrlParams.toString() %>" class="clear-filter-x" title="Remove tag: <%= tag %>">&#x2716;</a>
-                                        </span>
-                                        <% if (index < currentTags.length - 1) { %><span class="tag-separator"> &nbsp; </span><% } %> 
-                                    <% }); %>
+                                    <a href="/search?<%= clearVectorParams.toString() %>" class="clear-filter-x" title="Clear search term">&#x2716;</a>
                                 </span>
+                                <% if (hasMetadataFilters) { %><span class="filter-separator"> &nbsp; </span><% } %>
+                            <% } %>
+
+                            <% if (hasMetadataFilters) { %>
+                                <%# Only show "Filtering by:" if there was no preceding Search label %>
+                                <% if (!hasVectorQuery) { %>
+                                     <span class="current-filter-label">Filtering by:</span>
+                                <% } %>
+
+                                <%# Category/Type Pill %>
+                                <% if (currentFamily) { %> 
+                                    <span class="active-filter-pill category-filter-pill">
+                                        <%= currentFamily %><% if (currentType) { %> &gt; <%= currentType %><% } %>
+                                        <% 
+                                            const removeCategoryParams = new URLSearchParams(queryParams || '');
+                                            removeCategoryParams.delete('family');
+                                            removeCategoryParams.delete('type');
+                                        %>
+                                        <a href="/search?<%= removeCategoryParams.toString() %>" class="clear-filter-x" title="Remove category filter">&#x2716;</a>
+                                    </span> 
+                                    <% if (currentTags && currentTags.length > 0) { %><span class="filter-separator"> &nbsp; </span><% } %>
+                                <% } %>
+                                
+                                <%# Tag Pills %>
+                                <% if (currentTags && currentTags.length > 0) { %>
+                                    <span class="filter-part tags-filter-part">
+                                        <% if (!currentFamily && !hasVectorQuery) { %><strong>Tags:</strong><% } else if (!currentFamily && hasVectorQuery) { %> <%# Add space if tags follow query %> <% } %> 
+                                        <% currentTags.forEach((tag, index) => { %>
+                                            <span class="active-tag-pill active-filter-pill">
+                                                <%= tag %>
+                                                <% 
+                                                    const removeTagUrlParams = new URLSearchParams(queryParams || ''); 
+                                                    const tagsToKeep = currentTags.filter(t => t !== tag);
+                                                    removeTagUrlParams.delete('tag'); 
+                                                    tagsToKeep.forEach(t => removeTagUrlParams.append('tag', t));
+                                                %>
+                                                <a href="/search?<%= removeTagUrlParams.toString() %>" class="clear-filter-x" title="Remove tag: <%= tag %>">&#x2716;</a>
+                                            </span>
+                                            <% if (index < currentTags.length - 1) { %><span class="tag-separator"> &nbsp; </span><% } %> 
+                                        <% }); %>
+                                    </span>
+                                <% } %>
                             <% } %>
                         </div>
-                    <% } else if (!queryParams || !queryParams.q) { %> 
-                        <%# Only show this if no vector search AND no metadata filters %>
+                    <% } else { %> 
+                        <%# No vector query AND no metadata filters %>
                         <span class="current-filter">Showing all products. Use search or filters to narrow results.</span>
                     <% } %>
                 </div>
@@ -180,10 +190,6 @@
                             %>
                             <div class="product-card product-card-link" data-href="<%= productUrl %>"> 
                                     <h2><%= product.name %></h2>
-                                     <%# Display similarity score if available %>
-                                    <% if (typeof product.$similarity === 'number') { %>
-                                        <span class="similarity-score">Similarity: <%= product.$similarity.toFixed(3) %></span>
-                                    <% } %>
                                     <% if (product.image_url) { %>
                                         <img src="<%= product.image_url %>" alt="<%= product.name %>" class="product-image">
                                     <% } else { %>
