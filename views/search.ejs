@@ -39,30 +39,35 @@
                     <h3>By Tag</h3>
                     <input type="text" id="tagSearchInput" placeholder="Search tags...">
                     <div class="available-tags">
-                        <%# Filtered tag list will go here %>
                         <% if (typeof displayTags !== 'undefined' && displayTags.length > 0) { %>
                             <ul>
                             <% displayTags.forEach(tagInfo => { %>
                                 <% 
-                                    const addTagUrlParams = new URLSearchParams(queryParams || '');
-                                    let currentTags = addTagUrlParams.getAll('tag');
-                                    let isAlreadySelected = currentTags.includes(tagInfo.tag);
-                                    
-                                    // Build URL for adding/keeping tags
-                                    const tagLinkParams = new URLSearchParams(queryParams || '');
-                                    tagLinkParams.delete('family'); // Tag selection clears family/type
-                                    tagLinkParams.delete('type');
-                                    if (!isAlreadySelected) {
-                                       tagLinkParams.append('tag', tagInfo.tag);
-                                    } // If already selected, link keeps existing tags
-                                    
-                                    const tagLinkClass = (tagInfo.dynamicCount === 0 && !isAlreadySelected) || isAlreadySelected ? 'tag-link zero-count' : 'tag-link';
-                                    const showTag = tagInfo.dynamicCount > 0 || isAlreadySelected;
+                                    // Corrected logic for sidebar tag links:
+                                    // Always start with the current full query params
+                                    const sidebarTagLinkParams = new URLSearchParams(queryParams || '');
+                                    let currentTagsArray = sidebarTagLinkParams.getAll('tag'); 
+                                    const isTagSelected = currentTagsArray.includes(tagInfo.tag);
+
+                                    if (isTagSelected) {
+                                        // If tag is already selected, create URL to REMOVE it
+                                        const tagsToKeep = currentTagsArray.filter(t => t !== tagInfo.tag);
+                                        sidebarTagLinkParams.delete('tag'); // Clear all tag params
+                                        tagsToKeep.forEach(t => sidebarTagLinkParams.append('tag', t)); // Add back the others
+                                        // Family/Type params remain untouched as they were part of original queryParams
+                                    } else {
+                                        // If tag is not selected, create URL to ADD it
+                                        sidebarTagLinkParams.append('tag', tagInfo.tag);
+                                        // Family/Type params remain untouched
+                                    }
+
+                                    const tagLinkClass = isTagSelected ? 'tag-link selected' : (tagInfo.dynamicCount === 0 ? 'tag-link zero-count' : 'tag-link');
+                                    const showTag = tagInfo.dynamicCount > 0 || isTagSelected; 
                                 %>
                                 <% if (showTag) { %> 
-                                    <li data-tag-name="<%= tagInfo.tag.toLowerCase() %>"> <%# Add data attribute for filtering %>
-                                        <a href="/search?<%= tagLinkParams.toString() %>" class="<%= tagLinkClass %>">
-                                            <span class="tag"><%= tagInfo.tag %> (<%= tagInfo.dynamicCount %>)</span>
+                                    <li data-tag-name="<%= tagInfo.tag.toLowerCase() %>"> 
+                                        <a href="/search?<%= sidebarTagLinkParams.toString() %>" class="<%= tagLinkClass %>">
+                                            <span class="tag"><%= tagInfo.tag %> (<%= tagInfo.dynamicCount %>)</span> 
                                         </a>
                                     </li>
                                 <% } %>
@@ -79,32 +84,53 @@
                 <%# Button to toggle sidebar visibility on mobile %>
                 <button id="toggle-filters-btn" class="mobile-only-button">Show Filters</button>
                 
+                <%# Cleaner filter display area %>
                 <div class="filter-info">
-                    <%# Current filter display will go here %>
-                     <% if (currentTags && currentTags.length > 0) { %>
-                        <span class="current-filter-label">Filtering by Tags:</span>
-                        <div class="current-filter-tags-container">
-                            <% currentTags.forEach(tag => { %>
-                                <div class="current-filter-tag">
+                    <% 
+                        let hasFilters = currentFamily || currentType || (currentTags && currentTags.length > 0);
+                    %>
+                    <% if (hasFilters) { %>
+                        <div class="current-filter-summary">
+                            <%# Global Clear All Icon (using Ballot X) %>
+                            <a href="/search" class="clear-all-icon" title="Clear all filters">&#x274C;</a> 
+
+                            <span class="current-filter-label">Filtering by:</span>
+
+                            <%# Category/Type Pill (uses active-filter-pill) %>
+                            <% if (currentFamily) { %> 
+                                <span class="active-filter-pill category-filter-pill">
+                                    <%= currentFamily %><% if (currentType) { %> &gt; <%= currentType %><% } %>
                                     <% 
-                                        const removeTagUrlParams = new URLSearchParams(queryParams || '');
-                                        const tagsToKeep = currentTags.filter(t => t !== tag);
-                                        removeTagUrlParams.delete('tag'); // Remove all tags first
-                                        tagsToKeep.forEach(t => removeTagUrlParams.append('tag', t)); // Add back the ones to keep
+                                        const removeCategoryParams = new URLSearchParams(queryParams || '');
+                                        removeCategoryParams.delete('family');
+                                        removeCategoryParams.delete('type');
                                     %>
-                                    <a href="/search?<%= removeTagUrlParams.toString() %>" class="clear-filter-x">&#x2716;</a>
-                                    <span class="tag"><%= tag %></span>
-                                </div>
-                            <% }); %>
-                             <%# Add a clear all link %>
-                             <a href="/search" class="clear-all-tags">(Clear All Tags)</a>
+                                    <a href="/search?<%= removeCategoryParams.toString() %>" class="clear-filter-x" title="Remove category filter">&#x2716;</a>
+                                </span> 
+                                <% if (currentTags && currentTags.length > 0) { %><span class="filter-separator"> &nbsp; </span><% } %>
+                            <% } %>
+                            
+                            <%# Tags display (each tag uses active-filter-pill) %>
+                            <% if (currentTags && currentTags.length > 0) { %>
+                                <span class="filter-part tags-filter-part">
+                                    <% currentTags.forEach((tag, index) => { %>
+                                        <span class="active-tag-pill active-filter-pill">
+                                            <%= tag %>
+                                            <% 
+                                                const removeTagUrlParams = new URLSearchParams(queryParams || ''); 
+                                                const tagsToKeep = currentTags.filter(t => t !== tag);
+                                                removeTagUrlParams.delete('tag'); 
+                                                tagsToKeep.forEach(t => removeTagUrlParams.append('tag', t));
+                                            %>
+                                            <a href="/search?<%= removeTagUrlParams.toString() %>" class="clear-filter-x" title="Remove tag: <%= tag %>">&#x2716;</a>
+                                        </span>
+                                        <% if (index < currentTags.length - 1) { %><span class="tag-separator"> &nbsp; </span><% } %> 
+                                    <% }); %>
+                                </span>
+                            <% } %>
                         </div>
-                    <% } else if (currentFamily) { %>
-                        <span class="current-filter">Filtering by Family: <strong><%= currentFamily %></strong><% if (currentType) { %> / Type: <strong><%= currentType %></strong><% } %> 
-                            <a href="/search" class="clear-filter">(x)</a>
-                        </span>
                     <% } else { %>
-                        <span class="current-filter">Showing all products.</span>
+                        <span class="current-filter">Showing all products. Use filters to narrow results.</span>
                     <% } %>
                 </div>
 
@@ -133,11 +159,19 @@
                                         <div class="tags"> 
                                             <% product.tags.slice(0, 5).forEach(tag => { %>
                                                 <% 
-                                                    const cardTagLinkParams = new URLSearchParams();
-                                                    cardTagLinkParams.append('tag', tag);
+                                                    // Corrected logic: Build upon existing query params
+                                                    const cardTagLinkParams = new URLSearchParams(queryParams || '');
+                                                    // Add the clicked tag if it's not already present
+                                                    let currentCardTags = cardTagLinkParams.getAll('tag');
+                                                    if (!currentCardTags.includes(tag)) {
+                                                        cardTagLinkParams.append('tag', tag);
+                                                    }
+                                                    // Family/Type params are already preserved from queryParams
                                                 %>
-                                                <%# These links should still work independently %>
-                                                <a href="/search?<%= cardTagLinkParams.toString() %>" class="tag-link"><span class="tag"><%= tag %></span></a>
+                                                <%# Link now includes existing filters + this tag %>
+                                                <a href="/search?<%= cardTagLinkParams.toString() %>" class="tag-link" data-tag="<%= tag %>"> <%# Add data-tag for potential JS interactions %>
+                                                   <span class="tag"><%= tag %></span>
+                                                </a>
                                             <% }); %>
                                             <% if(product.tags.length > 5) { %> <span class="tag-more">...</span> <% } %>
                                         </div>
