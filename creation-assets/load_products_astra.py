@@ -45,10 +45,10 @@ def load_products():
                     try:
                         product_data = json.loads(line.strip())
                         
-                        # Create the document for insertion with $vectorize
+                        # Create the document for insertion with $hybrid
                         doc_to_insert = product_data.copy() # Start with original data
                         if 'description' in doc_to_insert:
-                            doc_to_insert['$vectorize'] = doc_to_insert['description']
+                            doc_to_insert['$hybrid'] = doc_to_insert['description']
                         else:
                             print(f"  Warning: 'description' field missing in document from {file_path}, skipping vectorization for this doc.")
                             # Decide if you still want to insert without vectorization
