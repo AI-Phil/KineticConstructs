@@ -1,0 +1,47 @@
+{
+	"name": "Kinetic Constructs",
+	// Use a Node.js base image - choose a version compatible with your project
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye",
+
+	"features": {
+		// Add Python 3.11
+		"ghcr.io/devcontainers/features/python:1": {
+			"version": "3.11"
+		}
+	},
+
+	"forwardPorts": [3000],
+	"portsAttributes": {
+		"3000": {
+			"label": "Application",
+			"onAutoForward": "notify"
+		}
+	},
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y pipx && pipx ensurepath && pipx install uv && npm install && uv pip sync pyproject.toml",
+
+	// Configure tool-specific properties.
+	"customizations": {
+		// Configure properties specific to VS Code.
+		"vscode": {
+			"settings": {},
+			"extensions": [
+				"dbaeumer.vscode-eslint", // StandardJS/ESLint
+				"ms-python.python", // Python support
+				"ms-python.vscode-pylance", // Python IntelliSense
+				"ms-azuretools.vscode-docker", // Docker support
+                "github.codespaces"
+			]
+		}
+	},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+
+    // Ensure environment variables from Codespaces secrets are available
+    "containerEnv": {
+        "ASTRA_DB_API_ENDPOINT": "${localEnv:ASTRA_DB_API_ENDPOINT}",
+        "ASTRA_DB_TOKEN": "${localEnv:ASTRA_DB_TOKEN}"
+    }
+} 
