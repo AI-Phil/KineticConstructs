@@ -1,0 +1,45 @@
+{
+	"name": "Kinetic Constructs",
+	// Use a Node.js base image - choose a version compatible with your project
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye",
+
+	"features": {
+		// Add Python 3.11
+		"ghcr.io/devcontainers/features/python:1": {
+			"version": "3.11"
+		}
+	},
+
+	"forwardPorts": [3000],
+	"portsAttributes": {
+		"3000": {
+			"label": "Application",
+			"onAutoForward": "notify"
+		}
+	},
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// Run the entire chain within bash -c for better compatibility.
+	// Install uv using the official script. (Sourcing .cargo/env seems unnecessary here).
+	// Use npm ci for potentially more reliable installs in CI/Codespaces.
+	// Copy .env.example only if .env doesn't exist.
+	"postCreateCommand": "bash -c 'sudo apt-get update -y && curl -LsSf https://astral.sh/uv/install.sh | sh && uv --version && npm ci && uv sync && ( [ -f .env ] || cp .env.example .env )'",
+
+	// Configure tool-specific properties.
+	"customizations": {
+		// Configure properties specific to VS Code.
+		"vscode": {
+			"settings": {},
+			"extensions": [
+				"dbaeumer.vscode-eslint", // StandardJS/ESLint
+				"ms-python.python", // Python support
+				"ms-python.vscode-pylance", // Python IntelliSense
+				"ms-azuretools.vscode-docker", // Docker support
+                "github.codespaces"
+			]
+		}
+	},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+} 
