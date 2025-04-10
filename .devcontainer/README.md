@@ -2,25 +2,23 @@
 
 This directory contains the configuration for running the Kinetic Constructs project in GitHub Codespaces.
 
-## Required Secrets
+## Environment Setup (.env file)
 
-Before launching the codespace, or shortly after, you **must** configure the following repository or user secrets for Codespaces:
+This Codespace is configured to use a `.env` file for environment variables.
 
-1.  `ASTRA_DB_API_ENDPOINT`: Your Astra DB API endpoint URL.
-2.  `ASTRA_DB_TOKEN`: Your Astra DB Application Token (starting with `AstraCS:...`).
+1.  When the Codespace starts, if a `.env` file doesn't exist in the root directory, a copy of `.env.example` will be created as `.env`.
+2.  You **must** edit the `.env` file and replace the placeholder values with your actual Astra DB credentials:
+    *   `ASTRA_DB_API_ENDPOINT`: Your Astra DB API endpoint URL.
+    *   `ASTRA_DB_TOKEN`: Your Astra DB Application Token (starting with `AstraCS:...`).
 
-These secrets are necessary for the application to connect to the database.
-
-Refer to the [GitHub Codespaces documentation on managing secrets](https://docs.github.com/en/codespaces/managing-your-codespaces/managing-encrypted-secrets-for-your-codespaces) for instructions on how to add them.
+*Important:* The `.env` file is included in `.gitignore` and should **not** be committed to the repository.
 
 ## Getting Started
 
-Once the secrets are configured:
-
 1.  Create a new Codespace for this repository.
-2.  The environment will automatically build based on `.devcontainer/devcontainer.json`. This includes installing Node.js, Python, and project dependencies.
-3.  Once the Codespace is ready, the application dependencies will be installed via the `postCreateCommand`.
-4.  You can start the application by running the following command in the terminal:
+2.  The environment will automatically build based on `.devcontainer/devcontainer.json`, installing Node.js, Python, and project dependencies. It will also create a `.env` file from the example if needed.
+3.  **Open the `.env` file** in the root directory and fill in your `ASTRA_DB_API_ENDPOINT` and `ASTRA_DB_TOKEN`.
+4.  Once the `.env` file is correctly populated, start the application by running the following command in the terminal:
 
     ```bash
     npm start
