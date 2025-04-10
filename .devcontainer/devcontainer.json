@@ -20,10 +20,10 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// Chain commands with && to ensure failure stops execution.
-	// Install uv using the official script.
+	// Install uv using the official script and source the environment.
 	// Use npm ci for potentially more reliable installs in CI/Codespaces.
 	// Copy .env.example only if .env doesn't exist.
-	"postCreateCommand": "sudo apt-get update && curl -LsSf https://astral.sh/uv/install.sh | sh && /home/vscode/.cargo/bin/uv --version && npm ci && /home/vscode/.cargo/bin/uv sync && ( [ -f .env ] || cp .env.example .env )",
+	"postCreateCommand": "sudo apt-get update && curl -LsSf https://astral.sh/uv/install.sh | sh && source /home/vscode/.cargo/env && uv --version && npm ci && uv sync && ( [ -f .env ] || cp .env.example .env )",
 
 	// Configure tool-specific properties.
 	"customizations": {
