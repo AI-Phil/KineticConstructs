@@ -21,7 +21,7 @@ This Codespace is configured to use a `.env` file for environment variables.
 4.  Once the `.env` file is correctly populated, start the application by running the following command in the terminal:
 
     ```bash
-    npm start
+    node server.js
     ```
 
 5.  Codespaces will automatically detect that the application is running on port 3000 and prompt you to open it in a browser. 

@@ -19,7 +19,7 @@
 	},
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y pipx && pipx ensurepath && pipx install uv && npm install && uv pip sync pyproject.toml && cp -n .env.example .env || true",
+	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y pipx && pipx ensurepath && pipx install uv && npm install && uv sync && cp -n .env.example .env || true",
 
 	// Configure tool-specific properties.
 	"customizations": {
