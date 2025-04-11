@@ -143,9 +143,9 @@ app.get('/', (req, res) => {
     res.render('home', { title: 'Welcome' });
 });
 
-// Search Page (Handles Vector Search + Filtering)
+// Search Page (Handles Text Search + Filtering)
 app.get('/search', async (req, res) => {
-    const queryText = req.query.q; // Vector search query
+    const queryText = req.query.q; // Text search query
     const requestedFamily = req.query.family;
     const requestedType = req.query.type;
     let requestedTags = req.query.tag || [];
@@ -183,29 +183,25 @@ app.get('/search', async (req, res) => {
             // --- Build Options Object ---
             const options = {};
             if (queryText) {
-                console.log(`Adding vector search options for: "${queryText}"`);
-                options.sort = { $vectorize: queryText };
-                options.includeSimilarity = true;
+                console.log(`Adding text search options for: "${queryText}"`);
+                options.limit = 25;
+                options.sort = { $hybrid: queryText };
+                options.hybridLimits = 50;
             }
 
             // --- Single Find Call ---           
             console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
-            const cursor = await productCollection.find(filter, options);
-            let initialProducts = await cursor.toArray(); // Fetch potentially unfiltered results
-            console.log(`Initial query fetched ${initialProducts.length} products.`);
-
-            // --- Filter by Similarity (if vector query was used) ---
+            
             if (queryText) {
-                products = initialProducts.filter(prod => 
-                    prod && typeof prod.$similarity === 'number' && prod.$similarity >= minSimilarity
-                );
-                console.log(`${products.length} products passed similarity threshold >= ${minSimilarity}.`);
-                
-                // Re-sort final filtered list by similarity
-                products.sort((a, b) => (b.$similarity || 0) - (a.$similarity || 0));
+                const cursor = await productCollection.findAndRerank(filter, options);
+                const rankedResults = await cursor.toArray(); // This is RankedResult[]
+                // Extract the document from each RankedResult
+                products = rankedResults.map(result => result.document);
+                console.log(`findAndRerank returned ${products.length} results.`);
             } else {
-                // If no vector query, use all results from the find call
-                products = initialProducts;
+                const cursor = await productCollection.find(filter, options);
+                products = await cursor.toArray(); // This is a list of our product objects directly
+                console.log(`find returned ${products.length} results.`);
             }
             
         } catch (e) { 
