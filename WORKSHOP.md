@@ -40,7 +40,7 @@ Make sure you have a vector-capable Astra database (get one for free at [astra.d
 ### ⚡️ Open this tutorial on Github Codespaces
 To make life easier, we'll use the awesome Github Codespace functionality. Github offers you a completely integrated developer experience and resources to get started quickly. How?
 
-1. Open the [agentic-ai-workshop](https://github.com/michelderu/agentic-ai-workshop) repository
+1. Open the [branch workshop](https://github.com/difli/KineticConstructs/tree/workshop) repository
 2. Click on `Use this template`->`Ceate new repository` as follows:
 
     ![codespace](./assets/create-new-repository.png)
