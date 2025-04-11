@@ -181,26 +181,18 @@ app.get('/search', async (req, res) => {
             // --- Build Options Object ---
             const options = {};
             if (queryText) {
-                console.log(`Adding hybrid search options for: "${queryText}"`);
+                console.log(`Adding vector search options for: "${queryText}"`);
                 options.limit = 25;
-                options.sort = { $hybrid: queryText };
+                options.sort = { $vectorize: queryText };
             }
 
             // --- Single Find Call ---           
             console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
-
-            if (queryText) {
-                const cursor = await productCollection.findAndRerank(filter, options);
-                const rankedResults = await cursor.toArray(); // This is RankedResult[]
-                // Extract the document from each RankedResult
-                products = rankedResults.map(result => result.document);
-                console.log(`findAndRerank returned ${products.length} results.`);
-            } else {
-                const cursor = await productCollection.find(filter, options);
-                products = await cursor.toArray();
-                console.log(`find returned ${products.length} results.`);
-            }
-
+            
+            const cursor = await productCollection.find(filter, options);
+            products = await cursor.toArray();
+            console.log(`find returned ${products.length} results.`);
+            
         } catch (e) { 
             console.error("Error during search:", e); 
             error = "Could not retrieve products.";

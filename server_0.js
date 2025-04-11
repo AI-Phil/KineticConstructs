@@ -142,13 +142,12 @@ app.get('/', (req, res) => {
     res.render('home', { title: 'Welcome' });
 });
 
-// Search Page (Handles Text Search + Filtering)
+// Search Page (Handles Filtering)
 app.get('/search', async (req, res) => {
     const requestedFamily = req.query.family;
     const requestedType = req.query.type;
     let requestedTags = req.query.tag || [];
     if (typeof requestedTags === 'string') requestedTags = [requestedTags];
-    const queryText = req.query.q; // Text search query
     
     let products = [];
     let error = null;
@@ -180,27 +179,14 @@ app.get('/search', async (req, res) => {
 
             // --- Build Options Object ---
             const options = {};
-            if (queryText) {
-                console.log(`Adding hybrid search options for: "${queryText}"`);
-                options.limit = 25;
-                options.sort = { $hybrid: queryText };
-            }
 
             // --- Single Find Call ---           
             console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
-
-            if (queryText) {
-                const cursor = await productCollection.findAndRerank(filter, options);
-                const rankedResults = await cursor.toArray(); // This is RankedResult[]
-                // Extract the document from each RankedResult
-                products = rankedResults.map(result => result.document);
-                console.log(`findAndRerank returned ${products.length} results.`);
-            } else {
-                const cursor = await productCollection.find(filter, options);
-                products = await cursor.toArray();
-                console.log(`find returned ${products.length} results.`);
-            }
-
+            
+            const cursor = await productCollection.find(filter, options);
+            products = await cursor.toArray();
+            console.log(`find returned ${products.length} results.`);
+            
         } catch (e) { 
             console.error("Error during search:", e); 
             error = "Could not retrieve products.";
@@ -235,7 +221,7 @@ app.get('/search', async (req, res) => {
     // --- End Dynamic Calculations --- 
 
     res.render('search', { 
-        title: queryText ? `Search Results for "${queryText}"` : 'Search Products',
+        title: 'Search Products',
         products: products, 
         error: error, 
         hierarchy: displayHierarchy, 
