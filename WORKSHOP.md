@@ -40,20 +40,22 @@ Make sure you have a vector-capable Astra database (get one for free at [astra.d
 ### ⚡️ Open this tutorial on Github Codespaces
 To make life easier, we'll use the awesome Github Codespace functionality. Github offers you a completely integrated developer experience and resources to get started quickly. How?
 
-1. Open the [branch workshop](https://github.com/difli/KineticConstructs/tree/workshop) repository
+1. Open the [workshop repository](https://github.com/difli/KineticConstruct) repository
 2. Click on `Use this template`->`Ceate new repository` as follows:
 
-    ![codespace](./assets/create-new-repository.png)
+    ![codespace](./docs/images/create-new-repository.png)
 
-3. Now select your github account and name the new repository. Ideally also set the description. Click `Create repository`
+3. Now select your github account and name the new repository.  **ensure you select: Include all branches**. Ideally also set the description. Click `Create repository`
 
-    ![codespace](./assets/repository-name.png)
+    ![codespace](./assets/select-all-branches.png)
 
-4. Cool! You just created a copy in your own Gihub account! Now let's get started with coding. Click `Create codespace on main` as follows:
+4. Cool! You just created a copy in your own Gihub account! Now let's switch to the **workshop** branch. Click `Create codespace on workshop` as follows:
 
-    ![codespace](./assets/create-codespace.png)
+    ![codespace](./docs/images/create-codespaces.png)
 
-5. Configure the secrets as follows:
+5. Wait a few minutes and get a cup of coffee until your codespace is configured.
+
+6. Configure the secrets as follows:
 
 - Copy `.env.example` to `.env`
 - Edit `.env` and provide the required variables `OPENAI_API_KEY`, `ASTRA_DB_API_ENDPOINT` and `ASTRA_DB_APPLICATION_TOKEN`
