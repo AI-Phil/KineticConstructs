@@ -63,8 +63,6 @@ To make life easier, we'll use the awesome Github Codespace functionality. Githu
 6. Now we can run Langflow as follows in the terminal window:
 
     ```bash
-    pip install uv
-    uv sync
     uv run langflow run --env-file .env
     ```
 
