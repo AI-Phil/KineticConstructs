@@ -10,19 +10,18 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH
 
-# Install Node.js 20.x, git, uv, Rust, build tools (including cmake, clang), and other tools as root
+# Install Node.js 20.x, git, uv, Rust, build tools, and other tools as root in a single layer
 USER root
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
-    # Install tools needed for NodeSource, Rust, building, and basic dev
+    # Install system dependencies
     apt-get install -y --no-install-recommends curl ca-certificates gnupg git procps sudo build-essential pkg-config libssl-dev cmake libclang-dev && \
-    # Add NodeSource repository for Node.js 20
+    # Add NodeSource repository & install Node.js
     mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
     NODE_MAJOR=20 && \
     echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
-    # Install Node.js
     apt-get update && \
-    apt-get install nodejs -y && \
+    apt-get install -y nodejs && \
     # Install uv globally
     pip install uv && \
     # Install Rust (cargo) into /usr/local/
@@ -44,22 +43,18 @@ USER root
 RUN chown ${USERNAME}:${USERNAME} /workspace
 USER ${USERNAME}
 
-# Copy dependency definition files
+# Copy dependency definition files first for better caching
 COPY --chown=${USERNAME}:${USERNAME} package.json package-lock.json* pyproject.toml ./
 
-# Install Node.js dependencies
+# Install Node.js & Python dependencies, then clean caches in single RUN commands
 RUN npm ci && npm cache clean --force
+RUN uv sync --no-cache && uv cache clean
 
-# Install Python dependencies using uv (libclang should now be available)
-RUN uv sync --no-cache
-
-# Clean uv cache
-RUN uv cache clean
-
-# Optional: Final permission setting
+# Optional: Final permission setting - copy rest of application code *after* deps
+# COPY --chown=${USERNAME}:${USERNAME} . .
 USER root
 RUN chown -R ${USERNAME}:${USERNAME} /workspace
 USER ${USERNAME}
 
 # Default command
-CMD ["sleep", "infinity"] 
+CMD ["sleep", "infinity"]
