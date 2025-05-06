@@ -112,7 +112,7 @@ const products = await cursor.toArray();
 To see this in action, run:
 
 ```bash
-node server_0.js
+node server.js
 ```
 
 ### Search using Vectorize
@@ -133,6 +133,15 @@ const options = queryText ? {
 
 // Modify the find() call to include options
 const cursor = await productCollection.find(filter, options);
+```
+
+We also update the search page to enable semantic search by enabling a property in the template context:
+
+```javascript
+res.render('search', {
+    // ... other properties ...
+    semanticSearchEnabled: true,
+});
 ```
 
 This means you can now:

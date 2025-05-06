@@ -212,7 +212,9 @@ app.get('/search', async (req, res) => {
         currentFamily: requestedFamily,
         currentType: requestedType,
         currentTags: requestedTags,
-        queryParams: req.query
+        queryParams: req.query,
+        semanticSearchEnabled: true,
+        keywordSearchEnabled: false
     });
 });
 
