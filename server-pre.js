@@ -9,7 +9,7 @@ console.log('ASTRA_DB_TOKEN:', process.env.ASTRA_DB_TOKEN ? 'Token loaded (maske
 const express = require('express');
 const path = require('path');
 const { DataAPIClient } = require("@datastax/astra-db-ts");
-const { marked } = require('marked'); // Import marked
+const { marked } = require('marked');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -31,7 +31,6 @@ let productHierarchy = {};
 let tagsByFrequency = [];
 let docTitleMap = new Map(); // Map to store DocID -> DocTitle
 
-// Updated initialization function name and logic
 async function initializeDbAndData() {
     console.log("Running DB and Data Initialization...");
     try {
@@ -143,38 +142,14 @@ app.get('/', (req, res) => {
     res.render('home', { title: 'Welcome' });
 });
 
-// Search Page
+// Search Page (Handles Text Search + Filtering)
 app.get('/search', async (req, res) => {
     const requestedFamily = req.query.family;
     const requestedType = req.query.type;
     let requestedTags = req.query.tag || [];
     if (typeof requestedTags === 'string') requestedTags = [requestedTags];
-
-    // Build the filter using $and if multiple criteria exist
-    const filterConditions = [];
-
-    // Add family/type filter if present
-    if (requestedFamily) {
-        const familyTypeFilter = { family: requestedFamily };
-        if (requestedType) {
-            familyTypeFilter.product_type = requestedType;
-        }
-        filterConditions.push(familyTypeFilter);
-    }
-
-    // Add tag filter if present
-    if (requestedTags.length > 0) {
-        filterConditions.push({ tags: { $all: requestedTags } });
-    }
-
-    // Construct the final filter object
-    let filter = {};
-    if (filterConditions.length > 1) {
-        filter = { $and: filterConditions };
-    } else if (filterConditions.length === 1) {
-        filter = filterConditions[0];
-    } // If filterConditions is empty, filter remains {} which finds all
-
+    const queryText = req.query.q; // Text search query
+    
     let products = [];
     let error = null;
 
@@ -182,43 +157,93 @@ app.get('/search', async (req, res) => {
         error = "Database connection error.";
     } else {
         try {
-            console.log(`Querying products with filter: ${JSON.stringify(filter)}`);
-            const cursor = await productCollection.find(filter);
-            products = await cursor.toArray();
-            console.log(`Fetched ${products.length} products.`);
-        } catch (e) {
-            console.error("Error fetching products:", e);
+            // --- Build Filter Object (Always) ---
+            const filterConditions = [];
+            if (requestedFamily) {
+                const familyTypeFilter = { family: requestedFamily };
+                if (requestedType) {
+                    familyTypeFilter.product_type = requestedType;
+                }
+                filterConditions.push(familyTypeFilter);
+            }
+            if (requestedTags.length > 0) {
+                filterConditions.push({ tags: { $all: requestedTags } });
+            }
+
+            let filter = {};
+            if (filterConditions.length > 1) { 
+                filter = { $and: filterConditions }; 
+            } else if (filterConditions.length === 1) { 
+                filter = filterConditions[0]; 
+            }
+            // filter remains {} if no metadata filters specified
+
+            // --- Build Options Object ---
+            const options = {};
+            if (queryText) {
+                console.log(`Adding hybrid search options for: "${queryText}"`);
+                options.limit = 25;
+                options.sort = { $hybrid: queryText };
+            }
+
+            // --- Single Find Call ---           
+            console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
+
+            if (queryText) {
+                const cursor = await productCollection.findAndRerank(filter, options);
+                const rankedResults = await cursor.toArray(); // This is RankedResult[]
+                // Extract the document from each RankedResult
+                products = rankedResults.map(result => result.document);
+                console.log(`findAndRerank returned ${products.length} results.`);
+            } else {
+                const cursor = await productCollection.find(filter, options);
+                products = await cursor.toArray();
+                console.log(`find returned ${products.length} results.`);
+            }
+
+        } catch (e) { 
+            console.error("Error during search:", e); 
             error = "Could not retrieve products.";
             products = [];
         }
     }
 
-    // Reinstated client-side tag counting
+    // --- Dynamic Tag Counts & Hierarchy (based on final filtered results) --- 
     const dynamicTagCounts = new Map();
+    const displayHierarchy = {}; 
     if (!error) {
         products.forEach(product => {
+            // Count Tags
             if (product.tags && Array.isArray(product.tags)) {
                 product.tags.forEach(tag => dynamicTagCounts.set(tag, (dynamicTagCounts.get(tag) || 0) + 1));
             }
+            // Build Dynamic Hierarchy
+            const family = product.family;
+            const productType = product.product_type;
+            if (family && productType && productType !== 'Consumables' && productType !== 'Accessory') {
+                if (!displayHierarchy[family]) {
+                    displayHierarchy[family] = {};
+                }
+                displayHierarchy[family][productType] = true; 
+            }
         });
     }
-
-    // Use the client-side calculated counts
     const displayTags = tagsByFrequency.map(tagInfo => ({
         tag: tagInfo.tag,
         dynamicCount: dynamicTagCounts.get(tagInfo.tag) || 0
     }));
+    // --- End Dynamic Calculations --- 
 
-    res.render('search', {
-        title: 'Search Products',
-        products: products,
-        error: error,
-        hierarchy: productHierarchy,
-        displayTags: displayTags,
+    res.render('search', { 
+        title: queryText ? `Search Results for "${queryText}"` : 'Search Products',
+        products: products, 
+        error: error, 
+        hierarchy: displayHierarchy, 
+        displayTags: displayTags, 
         currentFamily: requestedFamily,
         currentType: requestedType,
         currentTags: requestedTags,
-        queryParams: req.query
+        queryParams: req.query 
     });
 });
 
