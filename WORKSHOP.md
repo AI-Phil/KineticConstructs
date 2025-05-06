@@ -3,7 +3,7 @@
 ## 🎯 Goal of the workshop
 Learn how to ...
 
-By the end of this workshop, you’ll have ... 
+By the end of this workshop, you'll have ... 
 
 ## 🛠️ Prerequisites
 This workshop assumes you have access to:
@@ -74,7 +74,42 @@ To make life easier, we'll use the awesome Github Codespace functionality. Githu
 
 ### Search by Category and Tag
 
-Use DataAPI to find products by their product category and/or tags on the products.
+This initial version demonstrates basic product search using DataStax Astra DB's Data API. The code shows how to search our ConstructoBots, LogicLeaps, and other product lines using MongoDB-style queries.
+
+For example, you can search for:
+- All ConstructoBots wheeled robots: `{ family: "ConstructoBots", product_type: "Wheeled Robots" }`
+- Products with specific tags: `{ tags: { $all: ["coding", "python"] } }`
+- Combine both: `{ $and: [{ family: "ConstructoBots" }, { tags: { $all: ["coding", "python"] } }] }`
+
+Here's the key search code:
+
+```javascript
+const filterConditions = [];
+
+if (requestedFamily) {
+    const familyTypeFilter = { family: requestedFamily };
+    if (requestedType) {
+        familyTypeFilter.product_type = requestedType;
+    }
+    filterConditions.push(familyTypeFilter);
+}
+
+if (requestedTags.length > 0) {
+    filterConditions.push({ tags: { $all: requestedTags } });
+}
+
+let filter = {};
+if (filterConditions.length > 1) {
+    filter = { $and: filterConditions };
+} else if (filterConditions.length === 1) {
+    filter = filterConditions[0];
+}
+
+const cursor = await productCollection.find(filter);
+const products = await cursor.toArray();
+```
+
+To see this in action, run:
 
 ```bash
 node server_0.js
@@ -82,7 +117,32 @@ node server_0.js
 
 ### Search using Vectorize
 
-Vector search does a semantic comparison between the search query and the product description.
+In this version, we enhance our search capabilities by adding vector search using Astra DB's built-in `$vectorize` operator. The beauty of this enhancement is that we don't need to modify our existing filter logic - we simply add vector search as an additional option.
+
+Here are the only changes needed:
+
+```javascript
+// Add this line to get the search query
+const queryText = req.query.q;
+
+// Add these lines before the find() call
+const options = queryText ? { 
+    limit: 25,
+    sort: { $vectorize: queryText }
+} : {};
+
+// Modify the find() call to include options
+const cursor = await productCollection.find(filter, options);
+```
+
+This means you can now:
+- Search semantically (e.g., "robot that can walk and balance")
+- Combine semantic search with filters (e.g., "python coding robot" in ConstructoBots)
+- Fall back to regular search when no query is provided
+
+The vector search automatically converts your text query into embeddings and finds the most semantically similar products, making it much easier for users to find what they're looking for using natural language.
+
+To see this in action, run:
 
 ```bash
 node server_1.js
@@ -90,7 +150,37 @@ node server_1.js
 
 ### Search with Hybrid Search
 
-Hybrid search combines both semantic vector search along with a ranked keyword search of the product description.
+Hybrid search combines both semantic vector search along with a ranked keyword search of the product description. This provides more accurate and relevant results by considering both the semantic meaning and exact keyword matches.
+
+The key changes from the previous version are:
+
+```javascript
+// We switch from $vectorize to $hybrid in our search options
+const options = queryText ? { 
+    limit: 25,
+    sort: { $hybrid: queryText }
+} : {};
+
+// Use findAndRerank for text queries, regular find otherwise
+if (queryText) {
+    const cursor = await productCollection.findAndRerank(filter, options);
+    const rankedResults = await cursor.toArray();
+    products = rankedResults.map(result => result.document);
+} else {
+    const cursor = await productCollection.find(filter, options);
+    products = await cursor.toArray();
+}
+```
+
+This enhancement means:
+- When users search with text (e.g., "python coding robot"), the system now considers both:
+  - Semantic similarity (understanding the meaning of the query)
+  - Keyword relevance (matching specific terms in product descriptions)
+- The results are automatically reranked to show the most relevant products first
+- You can still combine this with filters (family, type, tags) for precise results
+- When no search text is provided, it falls back to regular filtered search
+
+To see this in action, run:
 
 ```bash
 node server_2.js
