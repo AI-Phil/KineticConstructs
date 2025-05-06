@@ -1,20 +1,19 @@
 require('dotenv').config();
 
-// --- Add debugging ---
+// Log environment configuration status
 console.log("Dotenv loaded.");
 console.log('ASTRA_DB_API_ENDPOINT:', process.env.ASTRA_DB_API_ENDPOINT);
 console.log('ASTRA_DB_TOKEN:', process.env.ASTRA_DB_TOKEN ? 'Token loaded (masked)' : 'Token NOT loaded');
-// --- End debugging ---
 
 const express = require('express');
 const path = require('path');
 const { DataAPIClient } = require("@datastax/astra-db-ts");
-const { marked } = require('marked'); // Import marked
+const { marked } = require('marked');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- Astra DB Configuration ---
+// Environment variables validation
 const { ASTRA_DB_API_ENDPOINT, ASTRA_DB_TOKEN, ASTRA_DB_COLLECTION } = process.env;
 
 if (!ASTRA_DB_API_ENDPOINT || !ASTRA_DB_TOKEN) {
@@ -22,28 +21,27 @@ if (!ASTRA_DB_API_ENDPOINT || !ASTRA_DB_TOKEN) {
     process.exit(1);
 }
 
-const collectionName = ASTRA_DB_COLLECTION || 'products'; // Default to 'products'
+const collectionName = ASTRA_DB_COLLECTION || 'products';
 
 let db;
 let productCollection;
 let documentCollection;
 let productHierarchy = {};
 let tagsByFrequency = [];
-let docTitleMap = new Map(); // Map to store DocID -> DocTitle
+let docTitleMap = new Map(); // Maps document IDs to their titles for quick lookup
 
-// Updated initialization function name and logic
+// Database initialization and data structure setup
 async function initializeDbAndData() {
     console.log("Running DB and Data Initialization...");
     try {
-        // Connect to DB
         const client = new DataAPIClient(ASTRA_DB_TOKEN);
         db = client.db(ASTRA_DB_API_ENDPOINT);
-        // Get both collections
+
         productCollection = await db.collection(process.env.ASTRA_DB_PRODUCT_COLLECTION || 'products');
         documentCollection = await db.collection(process.env.ASTRA_DB_DOCUMENT_COLLECTION || 'documents');
         console.log(`Connected to Astra DB collections: ${productCollection.collectionName}, ${documentCollection.collectionName}`);
 
-        // Fetch product data for hierarchy/tags
+        // Fetch and process product data
         console.log('Fetching data from products collection...');
         const productCursor = await productCollection.find({}, {
             projection: { family: 1, product_type: 1, tags: 1 }
@@ -51,35 +49,33 @@ async function initializeDbAndData() {
         const initialProductItems = await productCursor.toArray();
         console.log(`Fetched ${initialProductItems.length} product items.`);
         
-        // Build hierarchy and count tags
+        // Build product hierarchy and tag frequency map
         console.log('Building hierarchy and counting tags from DB data...');
         const hierarchy = {};
-        const tagCounts = new Map(); // Use a Map for counts
+        const tagCounts = new Map();
 
         initialProductItems.forEach(item => {
             const family = item.family;
             const productType = item.product_type;
 
-            // Skip unwanted types
+            // Skip non-product items
             if (!family || !productType || productType === 'Consumables' || productType === 'Accessory') {
-                return; // Skip this item
+                return;
             }
 
             if (!hierarchy[family]) {
                 hierarchy[family] = {};
             }
-            hierarchy[family][productType] = true; // Store types as keys for uniqueness
+            hierarchy[family][productType] = true;
 
-            // --- Tag counting ---
             if (item.tags && Array.isArray(item.tags)) {
                 item.tags.forEach(tag => {
                     tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
                 });
             }
-            // --- End tag counting ---
         });
 
-        // Sort families and product types alphabetically
+        // Sort hierarchy alphabetically for consistent display
         const sortedHierarchy = {};
         Object.keys(hierarchy).sort().forEach(family => {
             sortedHierarchy[family] = {};
@@ -90,24 +86,24 @@ async function initializeDbAndData() {
         productHierarchy = sortedHierarchy;
         console.log('Product hierarchy built.');
 
-        // Convert Map to array, sort by count (desc), then alphabetically for ties
+        // Sort tags by frequency (descending) and alphabetically for ties
         tagsByFrequency = Array.from(tagCounts.entries())
             .map(([tag, count]) => ({ tag, count }))
             .sort((a, b) => {
                 if (b.count !== a.count) {
-                    return b.count - a.count; // Sort by count descending
+                    return b.count - a.count;
                 }
-                return a.tag.localeCompare(b.tag); // Sort alphabetically for ties
+                return a.tag.localeCompare(b.tag);
             });
         console.log(`Counted and sorted ${tagsByFrequency.length} unique tags by frequency.`);
 
-        // Fetch document titles
+        // Cache document titles for quick lookup
         console.log('Fetching document titles...');
         const docCursor = await documentCollection.find({}, {
             projection: { _id: 1, title: 1 }
         });
         const docTitles = await docCursor.toArray();
-        docTitleMap.clear(); // Clear previous map
+        docTitleMap.clear();
         docTitles.forEach(doc => {
             if (doc._id && doc.title) {
                 docTitleMap.set(doc._id, doc.title);
@@ -121,39 +117,34 @@ async function initializeDbAndData() {
         productCollection = null;
         documentCollection = null;
         productHierarchy = {};
-        tagsByFrequency = []; // Ensure empty on error
+        tagsByFrequency = [];
         docTitleMap.clear(); 
     }
     console.log("Initialization complete.");
 }
 
-// --- Express App Setup ---
+// Express configuration
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
-// Serve static files (CSS, images)
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/images/products', express.static(path.join(__dirname, 'public/images/products'))); // Serve copied images
-app.use(express.json()); // Needed to parse request body if we used POST later
+app.use('/images/products', express.static(path.join(__dirname, 'public/images/products')));
+app.use(express.json());
 
-// --- Routes ---
-
-// Home Page - Reverted to simple render
+// Routes
 app.get('/', (req, res) => {
     res.render('home', { title: 'Welcome' });
 });
 
-// Search Page
+// Search endpoint with filtering capabilities
 app.get('/search', async (req, res) => {
     const requestedFamily = req.query.family;
     const requestedType = req.query.type;
     let requestedTags = req.query.tag || [];
     if (typeof requestedTags === 'string') requestedTags = [requestedTags];
 
-    // Build the filter using $and if multiple criteria exist
+    // Build compound filter for family/type and tags
     const filterConditions = [];
 
-    // Add family/type filter if present
     if (requestedFamily) {
         const familyTypeFilter = { family: requestedFamily };
         if (requestedType) {
@@ -162,18 +153,16 @@ app.get('/search', async (req, res) => {
         filterConditions.push(familyTypeFilter);
     }
 
-    // Add tag filter if present
     if (requestedTags.length > 0) {
         filterConditions.push({ tags: { $all: requestedTags } });
     }
 
-    // Construct the final filter object
     let filter = {};
     if (filterConditions.length > 1) {
         filter = { $and: filterConditions };
     } else if (filterConditions.length === 1) {
         filter = filterConditions[0];
-    } // If filterConditions is empty, filter remains {} which finds all
+    }
 
     let products = [];
     let error = null;
@@ -193,7 +182,7 @@ app.get('/search', async (req, res) => {
         }
     }
 
-    // Reinstated client-side tag counting
+    // Calculate tag frequencies for current result set
     const dynamicTagCounts = new Map();
     if (!error) {
         products.forEach(product => {
@@ -203,7 +192,6 @@ app.get('/search', async (req, res) => {
         });
     }
 
-    // Use the client-side calculated counts
     const displayTags = tagsByFrequency.map(tagInfo => ({
         tag: tagInfo.tag,
         dynamicCount: dynamicTagCounts.get(tagInfo.tag) || 0
@@ -222,18 +210,18 @@ app.get('/search', async (req, res) => {
     });
 });
 
-// Product Detail Page
+// Product detail page with optional initial document loading
 app.get('/product/:productId', async (req, res) => {
     const productId = req.params.productId;
-    const searchQueryParams = req.query; // Capture the incoming query params
-    const requestedDocId = req.query.doc; // Get requested doc ID from query
+    const searchQueryParams = req.query;
+    const requestedDocId = req.query.doc;
 
     let product = null;
-    let initialDocContent = null; // Variable to hold initial doc content
+    let initialDocContent = null;
     let initialDocTitle = null;
     let error = null;
 
-    if (!productCollection || !documentCollection) { // Check both collections
+    if (!productCollection || !documentCollection) {
         error = "Database connection error.";
     } else {
         try {
@@ -241,7 +229,7 @@ app.get('/product/:productId', async (req, res) => {
             product = await productCollection.findOne({ _id: productId });
             
             if (product) {
-                // Add document titles to the product object
+                // Attach document metadata to product
                 product.documentation = [];
                 if (product.documentation_ids && Array.isArray(product.documentation_ids)) {
                     product.documentation = product.documentation_ids
@@ -249,18 +237,15 @@ app.get('/product/:productId', async (req, res) => {
                         .sort((a, b) => a.title.localeCompare(b.title)); 
                 }
 
-                // Fetch initial document content if doc ID is provided and valid
+                // Load initial document if specified
                 if (requestedDocId && product.documentation.some(doc => doc.id === requestedDocId)) {
                     console.log(`Fetching initial document content for docId: ${requestedDocId}`);
                     const docData = await documentCollection.findOne({ _id: requestedDocId }, {
-                        projection: { content: 1, title: 1 } // Fetch content and title
+                        projection: { content: 1, title: 1 }
                     });
                     if (docData && docData.content) {
-                        initialDocContent = marked(docData.content); // Render markdown
-                        initialDocTitle = docData.title || requestedDocId; // Use title or ID
-                    } else {
-                        console.warn(`Initial document ${requestedDocId} not found or has no content.`);
-                        // Optional: could set an error message specific to doc loading
+                        initialDocContent = marked(docData.content);
+                        initialDocTitle = docData.title || requestedDocId;
                     }
                 }
             } else {
@@ -278,13 +263,13 @@ app.get('/product/:productId', async (req, res) => {
         error: error,
         script: '/js/product-detail.js',
         searchParams: searchQueryParams,
-        initialDocContent: initialDocContent, // Pass initial content
-        initialDocTitle: initialDocTitle,     // Pass initial title
-        initialDocId: requestedDocId          // Pass the requested ID for potential highlighting
+        initialDocContent: initialDocContent,
+        initialDocTitle: initialDocTitle,
+        initialDocId: requestedDocId
     });
 });
 
-// --- API Route for Document Content ---
+// Document content API endpoint
 app.get('/api/document/:docId', async (req, res) => {
     const docId = req.params.docId;
     if (!documentCollection) {
@@ -292,19 +277,17 @@ app.get('/api/document/:docId', async (req, res) => {
     }
     try {
         console.log(`Fetching document with _id: ${docId}`);
-        // Fetch the specific document by _id
         const doc = await documentCollection.findOne({ _id: docId });
 
         if (!doc) {
             return res.status(404).json({ error: 'Document not found' });
         }
 
-        // Check format and parse Markdown if applicable
+        // Convert markdown to HTML if applicable
         let htmlContent = '';
         if (doc.format && doc.format.toLowerCase() === 'markdown' && doc.text) {
-            htmlContent = marked.parse(doc.text); // Use marked to convert MD to HTML
+            htmlContent = marked.parse(doc.text);
         } else {
-            // Handle other formats or just return plain text (escaped)
             htmlContent = `<pre>${doc.text || 'No content found.'}</pre>`;
         }
 
@@ -319,9 +302,8 @@ app.get('/api/document/:docId', async (req, res) => {
     }
 });
 
-// --- Start Server ---
-// Use the updated initialization function
-initializeDbAndData().then(() => { // Renamed function call
+// Server startup with database initialization
+initializeDbAndData().then(() => {
     app.listen(port, () => {
         console.log(`Server listening at http://localhost:${port}`);
     });
