@@ -1,5 +1,5 @@
 # Base image with Python 3.11 on Debian Bookworm (includes newer sqlite3)
-FROM mcr.microsoft.com/devcontainers/python:0-3.11-bookworm
+FROM mcr.microsoft.com/devcontainers/python:1-3.11-bookworm
 
 ARG USERNAME=vscode
 
