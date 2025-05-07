@@ -15,9 +15,17 @@ fi
 
 # Ensure Langflow config directory exists and has correct permissions
 LANGFLOW_CONFIG_PATH="${PROJECT_WORKSPACE_ROOT}/.langflow_config"
+LANGFLOW_LOG_FILE_PATH="${LANGFLOW_CONFIG_PATH}/langflow.log" # Match the path in .env
+LANGFLOW_LOG_DIR_PATH=$(dirname "${LANGFLOW_LOG_FILE_PATH}")
+
 echo "Ensuring Langflow config directory exists at ${LANGFLOW_CONFIG_PATH}..."
 mkdir -p "${LANGFLOW_CONFIG_PATH}"
-# Ensure vscode user owns this directory
+
+echo "Ensuring Langflow log directory exists at ${LANGFLOW_LOG_DIR_PATH}..."
+mkdir -p "${LANGFLOW_LOG_DIR_PATH}" # Create the directory for the log file
+
+# Ensure vscode user owns the config directory and its contents
+echo "Setting ownership for ${LANGFLOW_CONFIG_PATH}..."
 chown -R vscode:vscode "${LANGFLOW_CONFIG_PATH}"
 
 # Move pre-built node_modules if conditions are met
