@@ -48,7 +48,7 @@ COPY --chown=${USERNAME}:${USERNAME} package.json package-lock.json* pyproject.t
 
 # Install Node.js & Python dependencies, then clean caches in single RUN commands
 RUN npm ci && npm cache clean --force && \
-    uv sync --system --no-cache && uv cache clean
+    uv pip install --system -r uv.lock && uv cache clean
 
 # Default command
 CMD ["sleep", "infinity"]
