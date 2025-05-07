@@ -47,8 +47,10 @@ USER ${USERNAME}
 COPY --chown=${USERNAME}:${USERNAME} package.json package-lock.json* pyproject.toml ./
 
 # Install Node.js & Python dependencies, then clean caches in single RUN commands
-RUN npm ci && npm cache clean --force && \
-    uv pip install --system . && uv cache clean
+RUN npm ci && npm cache clean --force
+
+USER root
+RUN uv pip install --system . && uv cache clean
 
 # Default command
 CMD ["sleep", "infinity"]
