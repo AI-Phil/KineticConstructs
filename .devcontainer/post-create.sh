@@ -1,18 +1,26 @@
 #!/bin/bash
 set -e
 
+PROJECT_WORKSPACE_ROOT="/workspaces/KineticConstructs"
+
 # Create .env file if it doesn't exist
-if [ ! -f /workspaces/KineticConstructs/.env ]; then
-  if [ -f /workspaces/KineticConstructs/.env.example ]; then
-    cp /workspaces/KineticConstructs/.env.example /workspaces/KineticConstructs/.env
+if [ ! -f "${PROJECT_WORKSPACE_ROOT}/.env" ]; then
+  if [ -f "${PROJECT_WORKSPACE_ROOT}/.env.example" ]; then
+    cp "${PROJECT_WORKSPACE_ROOT}/.env.example" "${PROJECT_WORKSPACE_ROOT}/.env"
     echo ".env created from .env.example"
   else
     echo ".env.example not found, skipping .env creation."
   fi
 fi
 
+# Ensure Langflow config directory exists and has correct permissions
+LANGFLOW_CONFIG_PATH="${PROJECT_WORKSPACE_ROOT}/.langflow_config"
+echo "Ensuring Langflow config directory exists at ${LANGFLOW_CONFIG_PATH}..."
+mkdir -p "${LANGFLOW_CONFIG_PATH}"
+# Ensure vscode user owns this directory
+chown -R vscode:vscode "${LANGFLOW_CONFIG_PATH}"
+
 # Move pre-built node_modules if conditions are met
-PROJECT_WORKSPACE_ROOT="/workspaces/KineticConstructs"
 IMAGE_NODE_MODULES_PATH="/workspace/node_modules"
 PROJECT_NODE_MODULES_PATH="${PROJECT_WORKSPACE_ROOT}/node_modules"
 

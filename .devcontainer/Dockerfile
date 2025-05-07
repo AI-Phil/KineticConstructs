@@ -39,7 +39,9 @@ RUN mkdir -p /workspace && chown ${USERNAME}:${USERNAME} /workspace
 # Copy pyproject.toml for Python dependencies
 COPY pyproject.toml /tmp/pyproject.toml
 # Install Python dependencies globally as root
-RUN cd /tmp && uv pip install --system . && uv cache clean && rm -rf /tmp/*
+# Force remove _distutils_hack to prevent permission issues during its reinstallation/update
+RUN rm -rf /usr/local/lib/python3.11/site-packages/_distutils_hack \
+    && cd /tmp && uv pip install --system . && uv cache clean && rm -rf /tmp/*
 
 # --- Node.js Dependencies Installation (can be as vscode user in their WORKDIR) ---
 # Switch to non-root user
