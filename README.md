@@ -47,16 +47,11 @@ Follow these steps to set up the project environment.
 4.  **Configure Astra DB Connection:**
     *   Create a [Vector-Enabled DataStax Astra DB instance](https://www.datastax.com/products/datastax-astra) if you haven't already.
         *   <img src="docs/images/astra-create-vector-db.png" alt="How to Create an Astra Vector DB Instance" width="500">
-    *   Add a Vector Integration:
+    *   Add the OpenAI Vector Integration:
         *   Navigate to your database's "Integrations" tab and click "Add Integration"
         *   <img src="docs/images/astra-add-integration-button.png" alt="Click the Add Integration Button" width="500">
         *   Verify the integration is active:
         *   <img src="docs/images/astra-active-integrations.png" alt="Verify Active Integrations" width="500">
-    *   Create Collections:
-        *   Navigate to the "Data Explorer" tab:
-        *   <img src="docs/images/astra-data-explorer-tab.png" alt="Navigate to Data Explorer" width="200">
-        *   Create two collections named `products` and `documents`:
-        *   <img src="docs/images/astra-create-collection.png" alt="Create Collection" width="500">
     *   Find your Database's API Endpoint, and Generate an Application Token:
         *   <img src="docs/images/astra-generate-token.png" alt="Generate Token" width="500">
     *   Create a `.env` file in the root directory of the project.
@@ -64,8 +59,10 @@ Follow these steps to set up the project environment.
         ```dotenv
         ASTRA_DB_API_ENDPOINT="your_astra_db_api_endpoint"
         ASTRA_DB_TOKEN="your_astra_db_application_token"
+        ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME="api_key_name_from_integrations_page"
         ```
-    *   Replace the placeholders with your actual API endpoint and token (the token should start with `AstraCS:...`).
+    *   Replace the placeholders with your actual API endpoint and token (the token should start with `AstraCS:...`), as well 
+        as the integration name.
 
 5.  **Load Data into Astra DB:**
     Run the provided Python scripts to populate your Astra DB collections.

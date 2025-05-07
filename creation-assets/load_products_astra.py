@@ -3,6 +3,8 @@ import json
 import glob
 from dotenv import load_dotenv
 from astrapy import DataAPIClient
+from astrapy.info import CollectionDefinition
+from astrapy.constants import VectorMetric
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,6 +28,55 @@ def load_products():
     print(f"Connecting to AstraDB: {ASTRA_DB_API_ENDPOINT}")
     client = DataAPIClient(ASTRA_DB_TOKEN)
     db = client.get_database(ASTRA_DB_API_ENDPOINT)
+
+    # --- Check if collection exists, create if not ---
+    collection_names = db.list_collection_names()
+    if ASTRA_DB_COLLECTION not in collection_names:
+        print(f"Collection '{ASTRA_DB_COLLECTION}' not found. Creating it now...")
+
+        ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME = os.getenv("ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME")
+        if not ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME:
+            print("Error: ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME must be set in the environment to create the collection with OpenAI embeddings.")
+            print("Please set it in a .env file or directly in the script environment.")
+            exit(1)
+       
+        collection_definition = (
+            CollectionDefinition.builder()
+            .set_vector_dimension(1536)
+            .set_vector_metric(VectorMetric.DOT_PRODUCT)
+            .set_vector_service(
+                provider="openai",
+                model_name="text-embedding-3-small",
+                authentication={
+                    "providerKey": f"{ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME}.providerKey",
+                },
+                # parameters={
+                #     "organizationId": "ORGANIZATION_ID",
+                #     "projectId": "PROJECT_ID",
+                # },
+            )
+            .set_lexical(
+                {
+                    "tokenizer": {"name": "standard", "args": {}}, # Breaks text into words based on grammar rules
+                    "filters": [
+                        {"name": "lowercase"},      # Converts tokens to lowercase (e.g., Apple -> apple)
+                        {"name": "stop"},           # Removes common words (e.g., "a", "the", "is")
+                        {"name": "porterstem"},     # Reduces words to their root form (e.g., "running" -> "run")
+                        {"name": "asciifolding"},   # Converts non-ASCII characters to ASCII (e.g., "café" -> "cafe")
+                    ],
+                }
+            )
+        )
+
+        collection = db.create_collection(
+            ASTRA_DB_COLLECTION,
+            definition=collection_definition,
+        )        
+        print(f"Collection '{ASTRA_DB_COLLECTION}' created successfully with lexical options and OpenAI embeddings via Astra integration '{ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME}'.")
+    else:
+        print(f"Collection '{ASTRA_DB_COLLECTION}' already exists.")
+    # --- End of new code ---
+
     collection = db.get_collection(ASTRA_DB_COLLECTION)
     print(f"Connected to collection: '{ASTRA_DB_COLLECTION}'")
 
