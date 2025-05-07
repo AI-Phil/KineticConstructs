@@ -44,11 +44,11 @@ RUN chown ${USERNAME}:${USERNAME} /workspace
 USER ${USERNAME}
 
 # Copy dependency definition files first for better caching
-COPY --chown=${USERNAME}:${USERNAME} package.json package-lock.json* pyproject.toml uv.lock ./
+COPY --chown=${USERNAME}:${USERNAME} package.json package-lock.json* pyproject.toml ./
 
 # Install Node.js & Python dependencies, then clean caches in single RUN commands
 RUN npm ci && npm cache clean --force && \
-    uv pip install --system -r uv.lock && uv cache clean
+    uv pip install --system . && uv cache clean
 
 # Default command
 CMD ["sleep", "infinity"]
