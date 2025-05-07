@@ -14,10 +14,7 @@
 	// Use 'postCreateCommand' for commands *after* the container is created and mounted.
 	// Dependencies are now installed during the image build.
 	// Copy .env.example only if .env doesn't exist.
-	"postCreateCommand": "bash -c '( [ -f .env ] || (cp .env.example .env && echo \".env created from .env.example\") )'",
-
-	// Automatically run server.js when the container starts
-	"postStartCommand": "node server.js",
+	"postCreateCommand": "bash -c '( [ -f .env ] || (cp .env.example .env && echo \".env created from .env.example\") ) && npm ci'",
 
 
 	// Configure tool-specific properties.
