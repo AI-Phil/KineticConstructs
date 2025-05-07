@@ -164,6 +164,7 @@ app.get('/search', async (req, res) => {
         filter = filterConditions[0];
     }
 
+    let options = {};
     let products = [];
     let error = null;
 
@@ -171,8 +172,8 @@ app.get('/search', async (req, res) => {
         error = "Database connection error.";
     } else {
         try {
-            console.log(`Querying products with filter: ${JSON.stringify(filter)}`);
-            const cursor = await productCollection.find(filter);
+            console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
+            const cursor = await productCollection.find(filter, options);
             products = await cursor.toArray();
             console.log(`Fetched ${products.length} products.`);
         } catch (e) {
