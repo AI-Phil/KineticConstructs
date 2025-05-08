@@ -1,60 +1,58 @@
-# Use a base image with Python 3.11 pre-installed
-FROM mcr.microsoft.com/devcontainers/python:0-3.11-bullseye
+# Base image with Python 3.11 on Debian Bookworm (includes newer sqlite3)
+FROM mcr.microsoft.com/devcontainers/python:1-3.11-bookworm
 
-# Default user for this image is often 'vscode', adjust if necessary
 ARG USERNAME=vscode
-ARG USER_HOME=/home/${USERNAME}
 
-# Define installation paths for Rust/Cargo
+# Set up Rust, uv, Node.js, and system tools
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH
 
-# Install Node.js 20.x, git, uv, Rust, build tools, and other tools as root in a single layer
 USER root
+
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
-    # Install system dependencies
-    apt-get install -y --no-install-recommends curl ca-certificates gnupg git procps sudo build-essential pkg-config libssl-dev cmake libclang-dev && \
-    # Add NodeSource repository & install Node.js
+    # Install system dependencies for Python, Rust, Node.js, and general tools
+    apt-get install -y --no-install-recommends \
+    curl ca-certificates gnupg git procps \
+    build-essential pkg-config libssl-dev cmake libclang-dev && \
+    # Add NodeSource repository & install Node.js 20
     mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
     NODE_MAJOR=20 && \
     echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
     apt-get update && \
     apt-get install -y nodejs && \
-    # Install uv globally
+    # Install uv
     pip install uv && \
-    # Install Rust (cargo) into /usr/local/
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain stable --no-modify-path -y && \
-    # Change ownership of Rust installation dirs to the user
+    # Install Rust
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+      sh -s -- --default-toolchain stable --no-modify-path -y && \
+    # Set permissions for Rust for the non-root user (vscode will own these)
     chown -R ${USERNAME}:${USERNAME} ${RUSTUP_HOME} ${CARGO_HOME} && \
     # Clean up apt caches
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Switch back to non-root user
-USER ${USERNAME}
+# Create workspace and set it up for the vscode user
+RUN mkdir -p /workspace && chown ${USERNAME}:${USERNAME} /workspace
 
-# Set working directory
+# --- Python Dependencies Installation (as root for global site-packages) ---
+# Copy pyproject.toml for Python dependencies
+COPY pyproject.toml /tmp/pyproject.toml
+# Install Python dependencies globally as root
+# Ensure _distutils_hack is handled correctly by the installation process
+RUN cd /tmp && uv pip install --system . && uv cache clean && rm -rf /tmp/* \
+    && echo "Granting write permissions to langflow site-packages directory..." \
+    && chmod -R a+w /usr/local/lib/python3.11/site-packages/langflow
+
+# --- Node.js Dependencies Installation (can be as vscode user in their WORKDIR) ---
+# Switch to non-root user
+USER ${USERNAME}
 WORKDIR /workspace
 
-# This chown is likely not needed as WORKDIR is created by the user now, 
-# but leaving it doesn't hurt. Ensure user owns it before COPY.
-USER root
-RUN chown ${USERNAME}:${USERNAME} /workspace
-USER ${USERNAME}
-
-# Copy dependency definition files first for better caching
-COPY --chown=${USERNAME}:${USERNAME} package.json package-lock.json* pyproject.toml ./
-
-# Install Node.js & Python dependencies, then clean caches in single RUN commands
+# Copy package.json and package-lock.json first for npm
+COPY --chown=${USERNAME}:${USERNAME} package.json package-lock.json* ./
+# Install Node.js dependencies
 RUN npm ci && npm cache clean --force
-RUN uv sync --no-cache && uv cache clean
 
-# Optional: Final permission setting - copy rest of application code *after* deps
-# COPY --chown=${USERNAME}:${USERNAME} . .
-USER root
-RUN chown -R ${USERNAME}:${USERNAME} /workspace
-USER ${USERNAME}
-
-# Default command
+# Default command to keep the container running
 CMD ["sleep", "infinity"]

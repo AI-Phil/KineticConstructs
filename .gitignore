@@ -11,4 +11,6 @@ yarn-error.log*
 
 # Optional editor directories
 .vscode/ 
+.DS_Store
 .*.ipynb
+
