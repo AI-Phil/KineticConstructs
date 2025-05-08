@@ -13,6 +13,18 @@ We'll start with a basic product catalog app and iteratively enhance its search 
 
 By the end of this workshop, you'll have practical experience using serverless vector databases and low-code AI flow builders to create modern, intelligent applications. Let's get building!
 
+## 🤖 Introducing the "Kinetic Constructs" Application
+
+Before we dive into the technical setup and coding, let's get acquainted with the application we'll be enhancing throughout this workshop.
+
+**Kinetic Constructs** is a fictional e-commerce platform specializing in innovative, interactive, and educational toys. The company prides itself on inspiring creativity, problem-solving, and collaborative play through products that blend physical construction with digital integration. Their catalog features diverse product lines such as ConstructoBots (programmable robots), LogicLeaps (electronic learning kits), ImagiWorlds (interactive playsets with AR), KinetiKits (advanced kinetic sets), and CreatiSpark (digital/electronic creative tools).
+
+Here's a look at the application's homepage:
+
+![Kinetic Constructs Homepage](./docs/images/kinetic-constructs-homepage.png)
+
+Currently, the application allows users to browse these products and apply basic filters (like category and tags). Our mission in this workshop is to supercharge its search capabilities, transforming it from a standard catalog into an intelligent discovery platform using Astra DB's vector search and Langflow.
+
 ## 🛠️ Prerequisites
 
 This workshop assumes you have access to:
@@ -21,7 +33,7 @@ This workshop assumes you have access to:
 During the course, you'll gain access to the following by signing up for free:
 1.  [DataStax Astra DB](https://astra.datastax.com): Our powerful, serverless vector database.
 2.  [OpenAI account](https://platform.openai.com/signup): Needed for generating embeddings (we'll use their API).
-    -   *Alternatively, workshop-specific OpenAI API keys might be provided.*
+    -   *Alternatively, workshop-specific OpenAI API keys might be provided if you encounter issues with your own.*
 
 Follow the steps below and securely note down your **Astra DB API Endpoint**, **Astra DB Application Token**, and **OpenAI API Key**. We'll configure them shortly.
 
@@ -37,8 +49,7 @@ Get your free-forever, serverless vector database:
 
 *   Wait a few minutes for provisioning.
 *   On the database dashboard, find and copy your **API Endpoint** (under Database details). Keep this safe!
-*   Click `Generate Token`. Choose the "Database Administrator" role for simplicity in this workshop. Give the token a name (e.g., `agentic-ai-token`).
-*   Click `Generate`. **Immediately copy the Application Token** (it starts with `AstraCS:...`). This token is shown only once, so save it securely!
+*   Click `Generate Token`. Choose the "Database Administrator" role for simplicity in this workshop. **Immediately copy the Application Token** (it starts with `AstraCS:...`). This token is shown only once, so save it securely!
 
     ![astradb](./docs/images/astra-generate-token.png)
 
@@ -48,6 +59,7 @@ We need OpenAI because our data loading scripts use it to generate the vector em
 *   Create an [OpenAI account](https://platform.openai.com/signup) or [sign in](https://platform.openai.com/login).
 *   Navigate to the [API key page](https://platform.openai.com/account/api-keys).
 *   Click `+ Create new secret key`, optionally name it, and copy the generated **API Key**. Save it securely.
+    -   *Alternatively, workshop-specific OpenAI API keys might be provided if you encounter issues with your own.*
 
     ![openai](./docs/images/openai-generate-api-key.png)
 
@@ -82,6 +94,18 @@ For Astra DB to automatically generate embeddings (e.g., when using the `$vector
 By completing these steps, you've authorized your Astra DB instance to use your OpenAI account for embedding generation. This is crucial for some of the advanced search functionalities we'll explore.
 
 [SCREENSHOT: Astra DB Integrations page showing OpenAI configured, credential added, and scoped to the workshop database]
+
+## 🤖 Introducing the "Kinetic Constructs" Application
+
+Before we dive into the technical setup and coding, let's get acquainted with the application we'll be enhancing throughout this workshop.
+
+**Kinetic Constructs** is a fictional e-commerce platform specializing in innovative, interactive, and educational toys. The company prides itself on inspiring creativity, problem-solving, and collaborative play through products that blend physical construction with digital integration. Their catalog features diverse product lines such as ConstructoBots (programmable robots), LogicLeaps (electronic learning kits), ImagiWorlds (interactive playsets with AR), KinetiKits (advanced kinetic sets), and CreatiSpark (digital/electronic creative tools).
+
+Here's a look at the application's homepage:
+
+![Kinetic Constructs Homepage](./docs/images/kinetic_constructs_homepage.png)
+
+Currently, the application allows users to browse these products and apply basic filters (like category and tags). Our mission in this workshop is to supercharge its search capabilities, transforming it from a standard catalog into an intelligent discovery platform using Astra DB's vector search and Langflow.
 
 ### 4. ⚡️ Launch the Workshop Environment in GitHub Codespaces
 
@@ -168,7 +192,7 @@ You should see output indicating the server is running, likely on port 3000. Cod
 
 You should see the product catalog web page with search and filtering options. Try using the sidebar filters.
 
-[SCREENSHOT: Basic product catalog web application running with server.js, showing filters]
+![Kinetic Constructs Filtering](./docs/images/kinetic-constructs-filter-tag-category.png)
 
 🎉 **Congrats! You've finished the setup and have the application running.** Now, let's dive into how the different search features are implemented.
 
