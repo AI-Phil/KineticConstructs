@@ -170,6 +170,8 @@ app.get('/search', async (req, res) => {
     if (semanticQuery) {
         if (keywordQuery) {
             options.sort = { $hybrid: { $vectorize: semanticQuery, $lexical: keywordQuery } };
+            options.rerankQuery = `${semanticQuery}
+Keywords: ${keywordQuery}`
         } else {
             options.sort = { $vectorize: semanticQuery };
         }

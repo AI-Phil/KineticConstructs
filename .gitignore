@@ -13,4 +13,4 @@ yarn-error.log*
 .vscode/ 
 .DS_Store
 .*.ipynb
-
+__pycache__/
