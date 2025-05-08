@@ -1,9 +1,16 @@
 # 🧠 Modernize Your App with AI: A Hands-On Workshop 
 
-## 🎯 Goal of the workshop
-Learn how to ...
+## 🎯 Workshop Goal
 
-By the end of this workshop, you’ll have ... 
+Ready to transform a standard web application into an AI-powered powerhouse? In this hands-on workshop, you'll learn how to leverage the cutting-edge capabilities of **DataStax Astra DB's vector search** and the intuitive **Langflow visual builder** to add sophisticated AI-driven search features to a Node.js application.
+
+We'll start with a basic product catalog app and iteratively enhance it:
+1. Implement **keyword-based search** using Astra DB's Data API.
+2. Introduce **semantic vector search** for finding products based on meaning, not just keywords.
+3. Combine the best of both worlds with **hybrid search**.
+4. Abstract the complex search logic into a **Langflow flow** and call it via its API.
+
+By the end of this workshop, you'll have practical experience using serverless vector databases and low-code AI flow builders to create modern, intelligent applications. Let's get building!
 
 ## 🛠️ Prerequisites
 This workshop assumes you have access to:
