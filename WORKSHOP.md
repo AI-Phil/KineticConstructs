@@ -1,126 +1,437 @@
-# 🧠 Modernize Your App with AI: A Hands-On Workshop 
+# 🧠 Modernize Your App with AI: A Hands-On Workshop
 
 ## 🎯 Workshop Goal
 
-Ready to transform a standard web application into an AI-powered powerhouse? In this hands-on workshop, you'll learn how to leverage the cutting-edge capabilities of **DataStax Astra DB's vector search** and the intuitive **Langflow visual builder** to add sophisticated AI-driven search features to a Node.js application.
+Ready to transform a standard web application into an AI-powered powerhouse? In this hands-on workshop, you'll learn how to leverage the cutting-edge capabilities of **DataStax Astra DB's vector search** and the intuitive **Langflow visual builder** to add sophisticated AI-driven search features to a Node.js product catalog application.
 
-We'll start with a basic product catalog app and iteratively enhance it:
-1. Implement **keyword-based search** using Astra DB's Data API.
-2. Introduce **semantic vector search** for finding products based on meaning, not just keywords.
-3. Combine the best of both worlds with **hybrid search**.
-4. Abstract the complex search logic into a **Langflow flow** and call it via its API.
+We'll start with a basic product catalog app and iteratively enhance its search functionality:
+1.  Implement **keyword-based filtering** by category and tags using Astra DB's Data API.
+2.  Introduce **semantic vector search** using `$vectorize` to find products based on meaning.
+3.  Combine the best of both worlds with **hybrid search** using the `$hybrid` operator.
+4.  Abstract the complex search logic into a **Langflow flow** and call it via its API for ultimate flexibility.
 
-By the end of this workshop, you'll have practical experience using serverless vector databases and low-code AI flow builders to create modern, intelligent applications. Let's get building!
+By the end of this workshop, you’ll have practical experience using serverless vector databases and low-code AI flow builders to create modern, intelligent applications. Let's get building!
 
 ## 🛠️ Prerequisites
+
 This workshop assumes you have access to:
-1. [A Github account](https://github.com)
+1.  A [GitHub account](https://github.com) (ensure it's set to public if you want to sign up for Astra DB via GitHub).
 
 During the course, you'll gain access to the following by signing up for free:
-1. [DataStax Astra DB](https://astra.datastax.com) (you can sign up through your **public** Github account)
-2. [OpenAI account](https://platform.openai.com/signup) (you can sign up through your Github account)
-    - *Alternatively we'll provide some OpenAI API keys to use for this workshop*
+1.  [DataStax Astra DB](https://astra.datastax.com): Our powerful, serverless vector database.
+2.  [OpenAI account](https://platform.openai.com/signup): Needed for generating embeddings (we'll use their API).
+    -   *Alternatively, workshop-specific OpenAI API keys might be provided.*
 
-Follow the below steps and note down the **Astra DB API Endpoint**, **Astra DB ApplicationToken** and **OpenAI API Key** as we'll need them later on.
+Follow the steps below and securely note down your **Astra DB API Endpoint**, **Astra DB Application Token**, and **OpenAI API Key**. We'll configure them shortly.
 
-### Sign up for Astra DB
-Make sure you have a vector-capable Astra database (get one for free at [astra.datastax.com](https://astra.datastax.com))
-- Sign up or log in
-- Click `Databases` and click `Create Database` 
-- Select `Serverless (Vector)`, type a database name, i.e. `agentic-ai` and select a Cloud Provider and Region of choice
+### 1. Sign up for Astra DB
+
+Get your free-forever, serverless vector database:
+*   Go to [astra.datastax.com](https://astra.datastax.com).
+*   Sign up or log in (using GitHub is easy!).
+*   Click `Databases` -> `Create Database`.
+*   Select `Serverless (Vector)`, choose a Cloud Provider/Region, and name your database (e.g., `agentic-ai`).
 
     ![astradb](./docs/images/astra-create-vector-db.png)
 
-- Wait a few minutes for it to provision
-- Note down the **API Endpoint** which can be found in the right pane underneath *Database details*.
-- Click on `Generate Token` and give it a name, i.e. `agentic-ai-token` and click `Generate`. Now click on the copy button and paste the **Application Token** somewhere for later use
+*   Wait a few minutes for provisioning.
+*   On the database dashboard, find and copy your **API Endpoint** (under Database details). Keep this safe!
+*   Click `Generate Token`. Choose the "Database Administrator" role for simplicity in this workshop. Give the token a name (e.g., `agentic-ai-token`).
+*   Click `Generate`. **Immediately copy the Application Token** (it starts with `AstraCS:...`). This token is shown only once, so save it securely!
 
     ![astradb](./docs/images/astra-generate-token.png)
 
-### Sign up for OpenAI
-- Create an [OpenAI account](https://platform.openai.com/signup) or [sign in](https://platform.openai.com/login).
-- Navigate to the [API key page](https://platform.openai.com/account/api-keys) and create a new **Secret Key**, optionally naming the key.
-    - *Alternatively we'll provide some OpenAI API keys to use for this workshop*
+### 2. Sign up for OpenAI
+
+We need OpenAI because our data loading scripts use it to generate the vector embeddings for product descriptions.
+*   Create an [OpenAI account](https://platform.openai.com/signup) or [sign in](https://platform.openai.com/login).
+*   Navigate to the [API key page](https://platform.openai.com/account/api-keys).
+*   Click `+ Create new secret key`, optionally name it, and copy the generated **API Key**. Save it securely.
 
     ![openai](./docs/images/openai-generate-api-key.png)
 
-### ⚡️ Open this tutorial on Github Codespaces
-To make life easier, we'll use the awesome Github Codespace functionality. Github offers you a completely integrated developer experience and resources to get started quickly. How?
+### 3. ⚡️ Launch the Workshop Environment in GitHub Codespaces
 
-1. Open the [workshop repository](https://github.com/difli/KineticConstruct) repository
-2. Click on `Use this template`->`Ceate new repository` as follows:
+Let's use GitHub Codespaces for a seamless development experience. It sets up everything you need in the cloud, including all dependencies from our pre-built Docker image.
 
-    ![codespace](./docs/images/create-new-repository.png)
-
-3. Now select your github account and name the new repository.  **ensure you select: Include all branches**. Ideally also set the description. Click `Create repository`
-
-    ![codespace](./docs/images/select-all-branches.png)
-
-4. Cool! You just created a copy in your own Gihub account! Now let's switch to the **workshop** branch. Click `Create codespace on workshop` as follows:
+1.  **Navigate to the Workshop Repository:** Go to [https://github.com/difli/KineticConstructs](https://github.com/difli/KineticConstructs) (this specific workshop repo).
+2.  **Switch to the `workshop` branch:** Ensure you are on the `workshop` branch using the branch selector dropdown.
+3.  **Create Codespace:** Click the green `<> Code` button, navigate to the `Codespaces` tab, and click `Create codespace on workshop`.
 
     ![codespace](./docs/images/create-codespaces.png)
 
-5. Wait a few minutes and get a cup of coffee until your codespace is configured.
+4.  **Patience is a Virtue:** Wait a few minutes while Codespaces pulls the pre-built Docker image and sets up your cloud-based development environment. Grab that coffee! ☕️
+5.  **Configure Secrets:** Once the Codespace loads (you'll see VS Code in your browser), we need to provide the API keys you saved. The `postCreateCommand` in our devcontainer setup automatically copies `.env.example` to `.env` if `.env` doesn't exist.
+    *   Find the `.env` file in the file explorer on the left (it should have been created automatically). If not, create it by copying `.env.example`.
+    *   Edit `.env` and replace the placeholder values with your actual `OPENAI_API_KEY`, `ASTRA_DB_API_ENDPOINT`, and `ASTRA_DB_APPLICATION_TOKEN`.
+    *   **Important:** The `.gitignore` file is set up to prevent committing your `.env` file with secrets.
 
-6. Configure the secrets as follows:
+    Your `.env` file should look something like this:
+    ```dotenv
+    # OpenAI Settings
+    OPENAI_API_KEY="sk-..."
 
-- Edit `.env` and provide the required variables `OPENAI_API_KEY`, `ASTRA_DB_API_ENDPOINT` and `ASTRA_DB_APPLICATION_TOKEN`
+    # Astra DB Settings
+    ASTRA_DB_API_ENDPOINT="https://YOUR_ENDPOINT.apps.astra.datastax.com"
+    ASTRA_DB_APPLICATION_TOKEN="AstraCS:..."
 
-7.  **Load Data into Astra DB:**
-    Run the provided Python scripts to populate your Astra DB collections.
+    # --- Langflow Configuration ---
+    # Directory for logs, database, etc. Needs to be writable by the user running langflow.
+    LANGFLOW_CONFIG_DIR="/workspaces/KineticConstructs/.langflow_config"
+
+    # Specifies the database file location within the config dir
+    # Note the four slashes for an absolute path with sqlite:///
+    LANGFLOW_DATABASE_URL="sqlite:////workspaces/KineticConstructs/.langflow_config/langflow.db"
+
+    # Explicitly set the log file path
+    LANGFLOW_LOG_FILE="/workspaces/KineticConstructs/.langflow_config/langflow.log"
+    ```
+
+6.  **Load Data into Astra DB:** Let's populate your database with sample product data. Open a terminal in your Codespace (Terminal -> New Terminal or Ctrl+`). The `postCreateCommand` might have already run these, but running them again is safe if needed.
     ```bash
     cd creation-assets
     python load_products_astra.py
     python load_documents_astra.py
     cd ..
     ```
-    These scripts will create and populate the `products` and `documents` collections in your Astra DB based on the data in `creation-assets/products/`. Wait for both scripts to complete.
+    These scripts use the credentials from your `.env` file to connect to Astra DB and create/populate the `products` and `documents` collections. Wait for both scripts to complete. You might see some output indicating the collections are being created and data is being loaded.
 
-## Running the Basic Catalog Application
+    [SCREENSHOT: Terminal showing successful output of data loading scripts]
 
-Once the setup is complete, you can run the basic Node.js web server:
+## 🚀 Running the Application (Initial State)
 
+With setup complete, let's run the Node.js web server. We'll start with the final version (`server_2.js` or `server.js` as they implement the same hybrid search) just to ensure the basic app structure works, but we'll focus on the *search functionality iteratively* in the next sections.
+
+In the Codespace terminal:
 ```bash
-node server.js
+node server_2.js # Or node server.js
 ```
+You should see output indicating the server is running, likely on port 3000. Codespaces should automatically detect this and show a pop-up allowing you to "Open in Browser". If not, navigate to the `PORTS` tab in the terminal panel, find port 3000, and click the globe icon (Open in Browser).
 
-Open your web browser and navigate to `http://localhost:3000` (or the port specified in the console output). You should see the basic product catalog.
+You should see the product catalog web page with search and filtering options.
 
+[SCREENSHOT: Basic product catalog web application running]
 
-🎉 Congrats! You finished the set-up part of the workshop. Now for the fun part!
+🎉 **Congrats! You've finished the setup and have the application running.** Now, let's dive into how the different search features are implemented.
 
-## 📦 Workshop follow-along
+*(Press Ctrl+C in the terminal to stop the server before proceeding to the next steps).*\
 
-### Search by Category and Tag
+## 📦 Workshop Follow-Along
 
-Use DataAPI to find products by their product category and/or tags on the products.
+### Iteration 1: Filtering by Category and Tag (`server_0.js`)
 
+Our first step focuses on basic filtering using Astra DB's Data API. This allows users to narrow down products based on metadata like `family`, `product_type`, and `tags`.
+
+**How it Works:**
+We use the `@datastax/astra-db-ts` client library. The `collection.find()` method accepts a `filter` object using MongoDB-like query operators.
+
+**Code Highlights (`server_0.js` - `/search` route):**
+
+1.  **Building the Filter Object:** We dynamically create the `filter` based on the URL query parameters.
+    ```javascript
+    // Snippet from server_0.js /search route
+    const requestedFamily = req.query.family;
+    const requestedType = req.query.type;
+    let requestedTags = req.query.tag || [];
+    if (typeof requestedTags === 'string') requestedTags = [requestedTags];
+
+    const filterConditions = [];
+    if (requestedFamily) {
+        const familyTypeFilter = { family: requestedFamily };
+        if (requestedType) {
+            familyTypeFilter.product_type = requestedType;
+        }
+        filterConditions.push(familyTypeFilter);
+    }
+    if (requestedTags.length > 0) {
+        // Use $all to match products containing ALL selected tags
+        filterConditions.push({ tags: { $all: requestedTags } });
+    }
+
+    let filter = {};
+    if (filterConditions.length > 1) {
+        filter = { $and: filterConditions }; // Combine multiple conditions
+    } else if (filterConditions.length === 1) {
+        filter = filterConditions[0];
+    }
+    ```
+
+2.  **Executing the Find Query:** We pass the constructed `filter` to `productCollection.find()`. The second argument (options) is empty for this iteration as we aren't sorting or limiting in a special way yet.
+    ```javascript
+    // Snippet from server_0.js /search route
+    console.log(`Querying products with filter: ${JSON.stringify(filter)}`);
+    const cursor = await productCollection.find(filter, {}); // Just filtering
+    products = await cursor.toArray();
+    console.log(`find returned ${products.length} results.`);
+    ```
+
+**Try it Out:**
+
+Run the first iteration of the server:
 ```bash
 node server_0.js
 ```
+Open the application in your browser. Use the sidebar filters for "Family", "Product Type", and "Tags". Observe how the product list updates based on your selections. Check the terminal logs in Codespaces to see the `filter` object being constructed.
 
-### Search using Vectorize
+[SCREENSHOT: Application showing category/tag filters and filtered results using server_0.js]
 
-Vector search does a semantic comparison between the search query and the product description.
+Stop the server (Ctrl+C).
 
+### Iteration 2: Semantic Vector Search (`server_1.js` with `$vectorize`)
+
+Now, let's add the magic of semantic search! Instead of exact matches, we'll find products based on the *meaning* of the user's query.
+
+**How it Works:**
+*   We leverage the `$vector` field (containing OpenAI embeddings of product descriptions) created during data loading.
+*   We use Astra DB's `$vectorize` operator within the `sort` option of the `find` command. This tells Astra DB to take the user's raw text query, convert it into a vector using the *same model configured for the collection* (OpenAI's `text-embedding-ada-002` in this case), and then find the documents whose `$vector` field is most similar (closest in vector space) to that query vector.
+
+**Code Highlights (`server_1.js` - `/search` route):**
+
+1.  **Adding the `$vectorize` Sort Option:** When a text query (`req.query.q`) is present, we add the `sort` option to the `find` command's options object.
+    ```javascript
+    // Snippet from server_1.js /search route
+    const queryText = req.query.q; // Text search query
+
+    // ... build filter object as in server_0.js ...
+
+    // --- Build Options Object ---
+    const options = {};
+    if (queryText) {
+        console.log(`Adding vector search options for: \"${queryText}\"`);
+        options.limit = 25; // Limit results
+        options.sort = { $vectorize: queryText }; // Key change: Use $vectorize!
+        // options.includeSimilarity = true; // Optionally include similarity score
+    }
+
+    // --- Single Find Call ---
+    console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
+    const cursor = await productCollection.find(filter, options); // Pass filter and options
+    products = await cursor.toArray();
+    ```
+    *   Crucially, our Node.js code *doesn't* need an OpenAI client here; Astra DB handles the query vectorization via `$vectorize`.
+
+**Try it Out:**
+
+Run the second iteration:
 ```bash
 node server_1.js
 ```
+Open the application. Use the main search box. Try searching for concepts:
+*   "something warm for winter"
+*   "stay dry in the rain"
+*   "gear for climbing mountains"
+Notice how the results relate semantically, even if the exact words aren't in the product description! Combine this with the filters.
 
-### Search with Hybrid Search
+[SCREENSHOT: Application showing vector search results for a conceptual query using server_1.js]
 
-Hybrid search combines both semantic vector search along with a ranked keyword search of the product description.
+Stop the server (Ctrl+C).
 
+### Iteration 3: Hybrid Search (`server_2.js` with `$hybrid`)
+
+Vector search is powerful for understanding intent, but sometimes keywords are essential (like brand names or specific features). Hybrid search combines semantic relevance with keyword matching.
+
+**How it Works:**
+*   Astra DB provides the `$hybrid` operator in the `sort` option. This instructs the database to perform *both* a vector similarity search (like `$vectorize`) *and* a traditional keyword relevance search (BM25) over indexed text fields.
+*   It then intelligently blends the scores from both search types to produce a ranked list where results are both semantically similar *and* contain relevant keywords.
+*   The `@datastax/astra-db-ts` client offers a convenient `findAndRerank` method designed specifically for `$hybrid` search, which returns results ordered by the combined relevance score.
+
+**Code Highlights (`server_2.js` - `/search` route):**
+
+1.  **Using `$hybrid` and `findAndRerank`:** When a text query is present, we use `$hybrid` in the `sort` options and call the `findAndRerank` method.
+    ```javascript
+    // Snippet from server_2.js /search route
+    const queryText = req.query.q; // Text search query
+
+    // ... build filter object as before ...
+
+    // --- Build Options Object ---
+    const options = {};
+    if (queryText) {
+        console.log(`Adding hybrid search options for: \"${queryText}\"`);
+        options.limit = 25;
+        options.sort = { $hybrid: queryText }; // Key change: Use $hybrid!
+    }
+
+    // --- Single Find Call ---
+    console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
+
+    if (queryText) {
+        // Key change: Use findAndRerank for hybrid search
+        const cursor = await productCollection.findAndRerank(filter, options);
+        const rankedResults = await cursor.toArray(); // Array of RankedResult objects
+        // Extract the original document from each result
+        products = rankedResults.map(result => result.document);
+        console.log(`findAndRerank returned ${products.length} results.`);
+    } else {
+        // Fallback to regular find if no query text (filtering only)
+        const cursor = await productCollection.find(filter, options);
+        products = await cursor.toArray();
+        console.log(`find returned ${products.length} results.`);
+    }
+    ```
+
+**Try it Out:**
+
+Run the third iteration:
 ```bash
 node server_2.js
 ```
+Open the application. Try searches combining concepts and keywords:
+*   "waterproof gore-tex hiking boots"
+*   "lightweight tent for backpacking"
+*   "comfortable fleece jacket"
+Compare the results to the pure vector search. You should see a better blend of relevance and keyword matching.
 
-### Speed up and simplyfy by using Langflow
+[SCREENSHOT: Application showing hybrid search results using server_2.js]
 
-Now we can run Langflow as follows in the terminal window:
+Stop the server (Ctrl+C).
 
+### Iteration 4: Simplify with Langflow!
+
+Implementing the search logic directly in Node.js is effective, but Langflow provides a visual, low-code/no-code way to build, manage, test, and deploy these AI flows as API endpoints. This separates the AI logic from the main application code, making both easier to maintain and update.
+
+**How it Works:**
+*   We visually build the hybrid search logic in Langflow using its drag-and-drop interface and Astra DB components.
+*   Langflow hosts this flow and provides a REST API endpoint.
+*   Our Node.js application (`server_3.js` - which you will create) simply calls this Langflow API endpoint with the user's query and displays the results returned by the flow.
+
+**Steps:**
+
+1.  **Start Langflow:**
+    Ensure Langflow is running. In your Codespace terminal:
     ```bash
     langflow run --env-file .env
     ```
+    Open Langflow in your browser using the URL provided in the `PORTS` tab (likely port 7860).
 
-    This starts Langflow and opens a port to your Codespace in the cloud. In case you loose track of the URL to Langflow, just click on `PORTS` in the terminal window.
+    [SCREENSHOT: Langflow UI loading in the browser]
+
+2.  **Build the Hybrid Search Flow:**
+    *   Inside Langflow, click "New Project" or navigate to create a new flow.
+    *   **Add Components:** From the sidebar, find and drag these components onto the canvas:
+        *   `Utilities` -> `TextInput`: This will be our query input. Click the component and rename its `Name` field (under Code) to `query_text` (this defines the input field for the API).
+        *   `Retrievers` -> `AstraDBRetriever`: This component handles the Astra DB interaction.
+        *   `Outputs` -> `ChatOutput`: To visualize the results within Langflow.
+    *   **Configure `AstraDBRetriever`:**
+        *   **API Endpoint:** Paste your Astra DB API Endpoint.
+        *   **Token:** Paste your Astra DB Application Token (`AstraCS:...`).
+        *   **Keyspace:** Enter `default_keyspace` (or your keyspace name if different).
+        *   **Collection Name:** Enter `products` (or your collection name).
+        *   **Embedding:** Select `OpenAIEmbeddings`.
+        *   **OpenAI API Key:** Langflow should automatically pick this up from your `.env` file (as it's running in the same environment). If not, you might need to configure it here or as a Langflow global variable.
+        *   **Search Type:** Select **`Hybrid`**.
+    *   **Connect Components:** Drag a connection from the output handle of `TextInput` to the `Input Value` input handle of `AstraDBRetriever`. Drag a connection from the output handle of `AstraDBRetriever` to the input handle of `ChatOutput`.
+    *   **Save:** Click the Save icon and give your flow a name (e.g., "Hybrid Product Search").
+
+    [SCREENSHOT: Langflow canvas showing the components connected: TextInput -> AstraDBRetriever (Hybrid configured) -> ChatOutput]
+
+3.  **Get the API Endpoint:**
+    *   With your flow open, click the API button (usually looks like `<>`) in the Langflow toolbar.
+    *   A modal will appear showing example `curl` commands and Python snippets. Note the **endpoint URL** (it includes a unique Flow ID) and the expected **JSON input structure** (it should use the `input_value` key matching your `TextInput` name).
+
+    [SCREENSHOT: Langflow UI showing the API endpoint details modal for the flow]
+
+4.  **Implement `server_3.js` (Manual Step for You):**
+    Now, you'll create `server_3.js`. The easiest way is to copy `server_2.js` and modify the `/search` route handler. Instead of calling `productCollection.findAndRerank`, you'll use `fetch` (or another HTTP client like `axios`) to make a POST request to the Langflow API endpoint you noted.
+
+    **Conceptual Code Snippet (to adapt for `server_3.js`):**
+    ```javascript
+    // Example using fetch (or axios) in server_3.js /search route
+    import fetch from 'node-fetch'; // Add 'node-fetch' to package.json if needed, or use built-in fetch
+
+    async function searchWithLangflow(query) {
+      // IMPORTANT: Replace with YOUR actual Langflow URL and Flow ID from the Langflow UI
+      const langflowApiUrl = 'http://127.0.0.1:7860/api/v1/run/YOUR_FLOW_ID'; 
+
+      // Match the 'Name' field of the TextInput component in your Langflow flow
+      const requestBody = {
+        input_value: query, 
+        stream: false, // Get the full result at once
+        // output_type: "chat" // Adjust based on your output component if needed
+      };
+
+      console.log(`Calling Langflow API: ${langflowApiUrl} with query: ${query}`);
+
+      try {
+        const response = await fetch(langflowApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.text();
+          throw new Error(`Langflow API Error (${response.status}): ${errorBody}`);
+        }
+
+        const result = await response.json();
+        console.log("Raw Langflow Result:", JSON.stringify(result, null, 2));
+
+        // --- Process the Langflow Result ---
+        // This is CRITICAL and depends heavily on the exact structure Langflow returns.
+        // You MUST inspect the "Raw Langflow Result" logged above to figure out
+        // how to extract the product documents. It might be nested deeply.
+        // Example *GUESS* (likely needs adjustment):
+        let products = [];
+        if (result?.outputs?.[0]?.outputs?.[0]?.results?.documents) {
+            // Assuming the retriever output contains a 'documents' list
+             products = result.outputs[0].outputs[0].results.documents.map(doc => doc.metadata); // Extract metadata if product data is there
+             console.log(`Extracted ${products.length} products from Langflow response.`);
+        } else {
+            console.warn("Could not find expected product data in Langflow response structure.");
+        }
+        return products;
+        // --- End Processing ---
+
+      } catch (error) {
+        console.error("Error calling Langflow API:", error);
+        return [];
+      }
+    }
+
+    // In your /search route handler:
+    // ... (get queryText, requestedFamily, etc.) ...
+    if (queryText) {
+        products = await searchWithLangflow(queryText);
+        // NOTE: Filtering by family/tags must now be handled *within* the Langflow flow
+        // itself (e.g., by adding filter inputs to the flow and connecting them
+        // to the AstraDBRetriever) or applied *after* getting results from Langflow.
+        // This current example only sends the text query.
+    } else {
+        // Fallback to direct DB call for non-text search (filtering only)
+        const cursor = await productCollection.find(filter, {});
+        products = await cursor.toArray();
+    }
+    // ... (rest of rendering logic) ...
+    ```
+    *   **Crucial:** You *must* inspect the actual JSON response from your Langflow API call (use `console.log`) to figure out how to correctly parse the product results. The example above is just a guess.
+    *   You'll also need to decide how to handle filtering (category/tags) – either add inputs to your Langflow flow or filter the results *after* they come back from Langflow.
+
+5.  **Try it Out:**
+    *   Make sure Langflow is still running.
+    *   Create and save your `server_3.js` file based on the snippet and `server_2.js`.
+    *   Run the final iteration: `node server_3.js`.
+    *   Open the application and perform searches. Debug the Langflow API call and result parsing until you see the search results correctly populated from your Langflow flow!
+
+    [SCREENSHOT: Application showing search results fetched via Langflow API call from server_3.js]
+
+## 🎉 Workshop Complete!
+
+Congratulations! You've successfully modernized a Node.js application by integrating powerful AI search capabilities using DataStax Astra DB and Langflow.
+
+You've learned how to:
+*   Set up Astra DB as a vector database.
+*   Use the Astra DB Data API for filtering and vector/hybrid search (`$vectorize`, `$hybrid`) in Node.js.
+*   Understand the concepts of embeddings and semantic search.
+*   Build an AI search flow visually using Langflow.
+*   Integrate a Node.js application with a Langflow API endpoint.
+
+This demonstrates how you can rapidly build and deploy sophisticated AI features with modern, developer-friendly tools.
+
+**Next Steps:**
+*   Enhance your Langflow flow (add filtering, try different components).
+*   Dive deeper into the Astra DB Data API documentation.
+*   Experiment with different embedding models.
+*   Deploy your application and Langflow flow to production!
+
+Thanks for participating!
