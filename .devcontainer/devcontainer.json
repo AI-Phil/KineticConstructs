@@ -14,7 +14,9 @@
 	// Use 'postCreateCommand' for commands *after* the container is created and mounted.
 	// Dependencies are now installed during the image build.
 	// Copy .env.example only if .env doesn't exist.
-	"postCreateCommand": "bash -c '( [ -f .env ] || cp .env.example .env )'",
+	// Also, move pre-built node_modules from /workspace to the actual workspace directory.
+	"postCreateCommand": "bash .devcontainer/post-create.sh",
+
 
 	// Configure tool-specific properties.
 	"customizations": {
