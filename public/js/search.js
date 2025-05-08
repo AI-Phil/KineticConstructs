@@ -1,6 +1,27 @@
 // This file now handles interactions specifically on the /search page
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Semantic Search and Keyword Search Interaction ---
+    const semanticSearchInput = document.querySelector('.semantic-search input');
+    const keywordSearchInput = document.querySelector('.keyword-search input');
+    
+    if (semanticSearchInput && keywordSearchInput) {
+        // Function to update keyword search input state
+        const updateKeywordSearchState = () => {
+            const hasSemanticSearch = semanticSearchInput.value.trim().length > 0;
+            keywordSearchInput.disabled = !hasSemanticSearch;
+            if (!hasSemanticSearch) {
+                keywordSearchInput.value = ''; // Clear keyword search when semantic search is empty
+            }
+        };
+
+        // Initial state
+        updateKeywordSearchState();
+
+        // Update on semantic search input changes
+        semanticSearchInput.addEventListener('input', updateKeywordSearchState);
+    }
+
     const tagSearchInput = document.getElementById('tagSearchInput');
     const availableTagsList = document.querySelector('.available-tags ul');
     const hierarchyFilter = document.querySelector('.hierarchy-filter'); // Get hierarchy container
