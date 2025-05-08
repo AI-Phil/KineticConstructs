@@ -47,7 +47,7 @@ To make life easier, we'll use the awesome Github Codespace functionality. Githu
 
 3. Now select your github account and name the new repository.  **ensure you select: Include all branches**. Ideally also set the description. Click `Create repository`
 
-    ![codespace](./assets/select-all-branches.png)
+    ![codespace](./docs/images/select-all-branches.png)
 
 4. Cool! You just created a copy in your own Gihub account! Now let's switch to the **workshop** branch. Click `Create codespace on workshop` as follows:
 
@@ -57,16 +57,28 @@ To make life easier, we'll use the awesome Github Codespace functionality. Githu
 
 6. Configure the secrets as follows:
 
-- Copy `.env.example` to `.env`
 - Edit `.env` and provide the required variables `OPENAI_API_KEY`, `ASTRA_DB_API_ENDPOINT` and `ASTRA_DB_APPLICATION_TOKEN`
 
-6. Now we can run Langflow as follows in the terminal window:
-
+7.  **Load Data into Astra DB:**
+    Run the provided Python scripts to populate your Astra DB collections.
     ```bash
-    uv run langflow run --env-file .env
+    cd creation-assets
+    python load_products_astra.py
+    python load_documents_astra.py
+    cd ..
     ```
+    These scripts will create and populate the `products` and `documents` collections in your Astra DB based on the data in `creation-assets/products/`. Wait for both scripts to complete.
 
-    This starts Langflow and opens a port to your Codespace in the cloud. In case you loose track of the URL to Langflow, just click on `PORTS` in the terminal window.
+## Running the Basic Catalog Application
+
+Once the setup is complete, you can run the basic Node.js web server:
+
+```bash
+node server.js
+```
+
+Open your web browser and navigate to `http://localhost:3000` (or the port specified in the console output). You should see the basic product catalog.
+
 
 🎉 Congrats! You finished the set-up part of the workshop. Now for the fun part!
 
@@ -95,3 +107,13 @@ Hybrid search combines both semantic vector search along with a ranked keyword s
 ```bash
 node server_2.js
 ```
+
+### Speed up and simplyfy by using Langflow
+
+Now we can run Langflow as follows in the terminal window:
+
+    ```bash
+    langflow run --env-file .env
+    ```
+
+    This starts Langflow and opens a port to your Codespace in the cloud. In case you loose track of the URL to Langflow, just click on `PORTS` in the terminal window.
