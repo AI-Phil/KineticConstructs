@@ -10,7 +10,7 @@ We'll start with a basic product catalog app and iteratively enhance its search 
 3.  Combine the best of both worlds with **hybrid search** using the `$hybrid` operator.
 4.  Abstract the complex search logic into a **Langflow flow** and call it via its API for ultimate flexibility.
 
-By the end of this workshop, you’ll have practical experience using serverless vector databases and low-code AI flow builders to create modern, intelligent applications. Let's get building!
+By the end of this workshop, you'll have practical experience using serverless vector databases and low-code AI flow builders to create modern, intelligent applications. Let's get building!
 
 ## 🛠️ Prerequisites
 
@@ -54,14 +54,32 @@ We need OpenAI because our data loading scripts use it to generate the vector em
 
 Let's use GitHub Codespaces for a seamless development experience. It sets up everything you need in the cloud, including all dependencies from our pre-built Docker image.
 
-1.  **Navigate to the Workshop Repository:** Go to [https://github.com/difli/KineticConstructs](https://github.com/difli/KineticConstructs) (this specific workshop repo).
-2.  **Switch to the `workshop` branch:** Ensure you are on the `workshop` branch using the branch selector dropdown.
-3.  **Create Codespace:** Click the green `<> Code` button, navigate to the `Codespaces` tab, and click `Create codespace on workshop`.
+1.  **Fork the Template Repository:** First, create your own copy of the workshop repository so you can make changes.
+    *   Navigate to the main workshop repository page: [https://github.com/difli/KineticConstructs](https://github.com/difli/KineticConstructs).
+    *   Click the `Use this template` button (usually near the top right) and select `Create a new repository`.
 
-    ![codespace](./docs/images/create-codespaces.png)
+    ![Use Template](./docs/images/create-new-repository.png) *<- Placeholder: Add correct image path*
 
-4.  **Patience is a Virtue:** Wait a few minutes while Codespaces pulls the pre-built Docker image and sets up your cloud-based development environment. Grab that coffee! ☕️
-5.  **Configure Secrets:** Once the Codespace loads (you'll see VS Code in your browser), we need to provide the API keys you saved. The `postCreateCommand` in our devcontainer setup automatically copies `.env.example` to `.env` if `.env` doesn't exist.
+2.  **Configure Your New Repository:**
+    *   Select your GitHub account as the owner.
+    *   Give your repository a name (e.g., `my-kinetic-constructs-workshop`).
+    *   **Crucially, ensure `Include all branches` is checked.** This is important because the starting code is on the `workshop` branch.
+    *   Optionally add a description.
+    *   Click `Create repository`.
+
+    ![Create Repo Options](./docs/images/select-all-branches.png) *<- Placeholder: Add correct image path*
+
+3.  **Navigate to Your New Repository:** Go to the main page of the repository you just created under your account.
+
+4.  **Switch to the `workshop` branch:** Use the branch selector dropdown (usually says `main`) and select the `workshop` branch.
+
+5.  **Create Codespace:** Click the green `<> Code` button, navigate to the `Codespaces` tab, and click `Create codespace on workshop`.
+
+    ![Create Codespace](./docs/images/create-codespaces.png)
+
+6.  **Patience is a Virtue:** Wait a few minutes while Codespaces pulls the pre-built Docker image and sets up your cloud-based development environment. Grab that coffee! ☕️
+
+7.  **Configure Secrets:** Once the Codespace loads (you'll see VS Code in your browser), we need to provide the API keys you saved. The `postCreateCommand` in our devcontainer setup automatically copies `.env.example` to `.env` if `.env` doesn't exist.
     *   Find the `.env` file in the file explorer on the left (it should have been created automatically). If not, create it by copying `.env.example`.
     *   Edit `.env` and replace the placeholder values with your actual `OPENAI_API_KEY`, `ASTRA_DB_API_ENDPOINT`, and `ASTRA_DB_APPLICATION_TOKEN`.
     *   **Important:** The `.gitignore` file is set up to prevent committing your `.env` file with secrets.
@@ -77,17 +95,21 @@ Let's use GitHub Codespaces for a seamless development experience. It sets up ev
 
     # --- Langflow Configuration ---
     # Directory for logs, database, etc. Needs to be writable by the user running langflow.
-    LANGFLOW_CONFIG_DIR="/workspaces/KineticConstructs/.langflow_config"
+    LANGFLOW_CONFIG_DIR="/workspaces/KineticConstructs/.langflow_config" 
+    # Adjust '/workspaces/KineticConstructs' if your repo name differs significantly in the path
 
     # Specifies the database file location within the config dir
     # Note the four slashes for an absolute path with sqlite:///
-    LANGFLOW_DATABASE_URL="sqlite:////workspaces/KineticConstructs/.langflow_config/langflow.db"
+    LANGFLOW_DATABASE_URL="sqlite:////workspaces/KineticConstructs/.langflow_config/langflow.db" 
+    # Adjust '/workspaces/KineticConstructs' if needed
 
     # Explicitly set the log file path
-    LANGFLOW_LOG_FILE="/workspaces/KineticConstructs/.langflow_config/langflow.log"
+    LANGFLOW_LOG_FILE="/workspaces/KineticConstructs/.langflow_config/langflow.log" 
+    # Adjust '/workspaces/KineticConstructs' if needed
     ```
+    *(Note: I added comments about adjusting the path if the repo name causes the workspace root to be different from `/workspaces/KineticConstructs`)*
 
-6.  **Load Data into Astra DB:** Let's populate your database with sample product data. Open a terminal in your Codespace (Terminal -> New Terminal or Ctrl+`). The `postCreateCommand` might have already run these, but running them again is safe if needed.
+8.  **Load Data into Astra DB:** Let's populate your database with sample product data. Open a terminal in your Codespace (Terminal -> New Terminal or Ctrl+`).
     ```bash
     cd creation-assets
     python load_products_astra.py
