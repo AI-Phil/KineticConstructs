@@ -91,10 +91,10 @@ def load_documents():
                     try:
                         doc_data = json.loads(line.strip())
                         
-                        # Create the document for insertion with $vectorize using the 'text' field
+                        # Create the document for insertion with $hybrid using the 'text' field
                         doc_to_insert = doc_data.copy() # Start with original data
                         if 'text' in doc_to_insert and doc_to_insert['text']: # Ensure 'text' exists and is not empty
-                            doc_to_insert['$vectorize'] = doc_to_insert['text']
+                            doc_to_insert['$hybrid'] = doc_to_insert['text']
                         else:
                             print(f"  Warning: 'text' field missing or empty in document from {file_path} (line {line_num}), skipping vectorization for this doc.")
                             # Optionally skip insertion: continue

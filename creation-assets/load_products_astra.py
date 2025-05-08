@@ -21,6 +21,65 @@ if not ASTRA_DB_TOKEN or not ASTRA_DB_API_ENDPOINT:
     print("Please set them in a .env file or directly in the script.")
     exit(1)
 
+def as_markdown(product_doc: dict) -> str | None:
+    """
+    Generates a markdown representation of a product document, including its
+    name, description, attributes, and tags.
+    Returns None if the description is missing or empty.
+    """
+    if 'description' not in product_doc or not product_doc['description']:
+        return None
+
+    markdown_elements = []
+    
+    # Product Name
+    product_name = product_doc.get('name')
+    if product_name:
+        markdown_elements.append(f"# {product_name}")
+    
+    # Product Description (guaranteed to exist and be non-empty by the initial check)
+    markdown_elements.append(product_doc['description'])
+    
+    # Product Attributes
+    product_attributes = product_doc.get('attributes')
+    if product_attributes:
+        attribute_strings = []
+        if isinstance(product_attributes, dict):
+            for key, value in product_attributes.items():
+                if value is not None: # Only include attributes with a value
+                    attribute_strings.append(f"* **{key}**: {value}")
+        elif isinstance(product_attributes, list):
+            for attr in product_attributes:
+                if isinstance(attr, dict):
+                    name = attr.get('name', attr.get('key'))
+                    val = attr.get('value')
+                    if name and val is not None:
+                        attribute_strings.append(f"* **{name}**: {val}")
+                    elif name: # Attribute with name but no value
+                        attribute_strings.append(f"* {name}")
+                    # else: skip malformed dict attributes
+                elif isinstance(attr, str) and attr.strip():
+                    attribute_strings.append(f"* {attr.strip()}")
+                # else: skip non-string/non-dict attributes in list
+        if attribute_strings:
+            markdown_elements.append("\n## Attributes")
+            markdown_elements.extend(attribute_strings)
+    
+    # Product Tags
+    product_tags = product_doc.get('tags')
+    if product_tags:
+        tag_list = []
+        if isinstance(product_tags, list):
+            tag_list = [str(tag).strip() for tag in product_tags if tag and str(tag).strip()]
+        elif isinstance(product_tags, str) and product_tags.strip():
+            tag_list = [product_tags.strip()]
+        
+        if tag_list:
+            markdown_elements.append("\n## Tags")
+            markdown_elements.append(", ".join(tag_list))
+
+    return "\n\n".join(markdown_elements)
+
 def load_products():
     """Finds product JSONL files, connects to AstraDB, and loads the data."""
 
@@ -96,19 +155,18 @@ def load_products():
                     try:
                         product_data = json.loads(line.strip())
                         
-                        # Create the document for insertion with $vectorize
                         doc_to_insert = product_data.copy() # Start with original data
-                        if 'description' in doc_to_insert:
-                            doc_to_insert['$vectorize'] = doc_to_insert['description']
-                        else:
-                            print(f"  Warning: 'description' field missing in document from {file_path}, skipping vectorization for this doc.")
-                            # Decide if you still want to insert without vectorization
-                            # If not, you could use 'continue' here.
 
+                        # Create the document for insertion with $hybrid
+                        generated_markdown = as_markdown(doc_to_insert)
+                        if generated_markdown:
+                            doc_to_insert['$hybrid'] = generated_markdown
+                        else:
+                            print(f"  Warning: descriptive content missing or empty in document from {file_path}. '$hybrid' field will not be generated.")
+                        
                         # Insert the modified document
                         response = collection.insert_one(doc_to_insert)
                         
-                        # print(f"  Inserted document ID: {response.inserted_id}")
                         inserted_in_file += 1
                     except json.JSONDecodeError as e:
                         print(f"  Warning: Skipping invalid JSON line in {file_path}: {e}")
