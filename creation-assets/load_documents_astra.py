@@ -3,18 +3,14 @@ import json
 import glob
 from dotenv import load_dotenv
 from astrapy import DataAPIClient
-from astrapy.info import CollectionDefinition
-from astrapy.constants import VectorMetric
+from create_astra_collection import create_collection_if_not_exists
 
-# Load environment variables from .env file
 load_dotenv()
 
-# --- AstraDB Credentials (Loaded from .env) ---
 ASTRA_DB_TOKEN = os.getenv("ASTRA_DB_TOKEN") 
 ASTRA_DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
-# --- ---
 
-ASTRA_DB_COLLECTION = "documents" # Target the 'documents' collection
+ASTRA_DB_COLLECTION = "documents"
 
 if not ASTRA_DB_TOKEN or not ASTRA_DB_API_ENDPOINT:
     print("Error: ASTRA_DB_TOKEN and ASTRA_DB_API_ENDPOINT must be set in the .env file.")
@@ -23,59 +19,16 @@ if not ASTRA_DB_TOKEN or not ASTRA_DB_API_ENDPOINT:
 def load_documents():
     """Finds document JSONL files, connects to AstraDB, and loads the data."""
 
-    # Initialize the client
     print(f"Connecting to AstraDB: {ASTRA_DB_API_ENDPOINT}")
     client = DataAPIClient(ASTRA_DB_TOKEN)
     db = client.get_database(ASTRA_DB_API_ENDPOINT)
 
-    # --- Check if collection exists, create if not ---
-    collection_names = db.list_collection_names()
-    if ASTRA_DB_COLLECTION not in collection_names:
-        print(f"Collection '{ASTRA_DB_COLLECTION}' not found. Creating it now...")
+    is_lexical, collection_name = create_collection_if_not_exists(db, ASTRA_DB_COLLECTION)
+    text_field_name = '$hybrid' if is_lexical else '$vectorize'
+    
+    collection = db.get_collection(collection_name)
+    print(f"Connected to collection: '{collection_name}'")
 
-        ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME = os.getenv("ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME")
-        if not ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME:
-            print("Error: ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME must be set in the environment to create the collection with OpenAI embeddings.")
-            print("Please set it in a .env file or directly in the script environment.")
-            exit(1)
-        
-        lexical_config = {
-            "tokenizer": {"name": "standard", "args": {}}, # Breaks text into words based on grammar rules
-            "filters": [
-                {"name": "lowercase"},      # Converts tokens to lowercase (e.g., Apple -> apple)
-                {"name": "stop"},           # Removes common words (e.g., "a", "the", "is")
-                {"name": "porterstem"},     # Reduces words to their root form (e.g., "running" -> "run")
-                {"name": "asciifolding"},   # Converts non-ASCII characters to ASCII (e.g., "café" -> "cafe")
-            ],
-        }
-
-        collection_definition = (
-            CollectionDefinition.builder()
-            .set_vector_dimension(1536)
-            .set_vector_metric(VectorMetric.DOT_PRODUCT)
-            .set_vector_service(
-                provider="openai",
-                model_name="text-embedding-3-small",
-                authentication={
-                    "providerKey": ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME,
-                }
-            )
-            .set_lexical(lexical_config)
-        )
-
-        collection = db.create_collection(
-            ASTRA_DB_COLLECTION,
-            definition=collection_definition,
-        )
-        print(f"Collection '{ASTRA_DB_COLLECTION}' created successfully with lexical options and OpenAI embeddings via Astra integration '{ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME}'.")
-    else:
-        print(f"Collection '{ASTRA_DB_COLLECTION}' already exists.")
-    # --- End of new code ---
-
-    collection = db.get_collection(ASTRA_DB_COLLECTION)
-    print(f"Connected to collection: '{ASTRA_DB_COLLECTION}'")
-
-    # Find all documents.jsonl files within product subdirectories
     document_files = glob.glob("products/*/documents.jsonl") 
     print(f"Found {len(document_files)} document file(s):")
     for f in document_files:
@@ -87,19 +40,16 @@ def load_documents():
         inserted_in_file = 0
         try:
             with open(file_path, 'r') as f:
-                for line_num, line in enumerate(f, 1): # Enumerate for better error reporting
+                for line_num, line in enumerate(f, 1):
                     try:
                         doc_data = json.loads(line.strip())
                         
-                        # Create the document for insertion with $hybrid using the 'text' field
-                        doc_to_insert = doc_data.copy() # Start with original data
-                        if 'text' in doc_to_insert and doc_to_insert['text']: # Ensure 'text' exists and is not empty
-                            doc_to_insert['$hybrid'] = doc_to_insert['text']
+                        doc_to_insert = doc_data.copy()                       
+                        if 'text' in doc_to_insert and doc_to_insert['text']:
+                            doc_to_insert[text_field_name] = doc_to_insert['text']
                         else:
-                            print(f"  Warning: 'text' field missing or empty in document from {file_path} (line {line_num}), skipping vectorization for this doc.")
-                            # Optionally skip insertion: continue
+                            print(f"  Warning: 'text' field missing or empty in document from {file_path} (line {line_num}), '{text_field_name}' field will not be generated for this doc.")
 
-                        # Insert the modified document
                         response = collection.insert_one(doc_to_insert)
                         
                         inserted_in_file += 1

@@ -3,16 +3,12 @@ import json
 import glob
 from dotenv import load_dotenv
 from astrapy import DataAPIClient
-from astrapy.info import CollectionDefinition
-from astrapy.constants import VectorMetric
+from create_astra_collection import create_collection_if_not_exists
 
-# Load environment variables from .env file
 load_dotenv()
 
-# --- AstraDB Credentials (Replace with your actual credentials or load from env) ---
-ASTRA_DB_TOKEN = os.getenv("ASTRA_DB_TOKEN") # Or replace with "AstraCS:..."
-ASTRA_DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT") # Or replace with "https://<db_id>-<region>.apps.astra.datastax.com"
-# --- ---
+ASTRA_DB_TOKEN = os.getenv("ASTRA_DB_TOKEN")
+ASTRA_DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
 
 ASTRA_DB_COLLECTION = "products"
 
@@ -83,63 +79,16 @@ def as_markdown(product_doc: dict) -> str | None:
 def load_products():
     """Finds product JSONL files, connects to AstraDB, and loads the data."""
 
-    # Initialize the client
     print(f"Connecting to AstraDB: {ASTRA_DB_API_ENDPOINT}")
     client = DataAPIClient(ASTRA_DB_TOKEN)
     db = client.get_database(ASTRA_DB_API_ENDPOINT)
 
-    # --- Check if collection exists, create if not ---
-    collection_names = db.list_collection_names()
-    if ASTRA_DB_COLLECTION not in collection_names:
-        print(f"Collection '{ASTRA_DB_COLLECTION}' not found. Creating it now...")
+    is_lexical, collection_name = create_collection_if_not_exists(db, ASTRA_DB_COLLECTION)
+    text_field_name = '$hybrid' if is_lexical else '$vectorize'
 
-        ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME = os.getenv("ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME")
-        if not ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME:
-            print("Error: ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME must be set in the environment to create the collection with OpenAI embeddings.")
-            print("Please set it in a .env file or directly in the script environment.")
-            exit(1)
-       
-        collection_definition = (
-            CollectionDefinition.builder()
-            .set_vector_dimension(1536)
-            .set_vector_metric(VectorMetric.DOT_PRODUCT)
-            .set_vector_service(
-                provider="openai",
-                model_name="text-embedding-3-small",
-                authentication={
-                    "providerKey": f"{ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME}.providerKey",
-                },
-                # parameters={
-                #     "organizationId": "ORGANIZATION_ID",
-                #     "projectId": "PROJECT_ID",
-                # },
-            )
-            .set_lexical(
-                {
-                    "tokenizer": {"name": "standard", "args": {}}, # Breaks text into words based on grammar rules
-                    "filters": [
-                        {"name": "lowercase"},      # Converts tokens to lowercase (e.g., Apple -> apple)
-                        {"name": "stop"},           # Removes common words (e.g., "a", "the", "is")
-                        {"name": "porterstem"},     # Reduces words to their root form (e.g., "running" -> "run")
-                        {"name": "asciifolding"},   # Converts non-ASCII characters to ASCII (e.g., "café" -> "cafe")
-                    ],
-                }
-            )
-        )
+    collection = db.get_collection(collection_name)
+    print(f"Connected to collection: '{collection_name}'")
 
-        collection = db.create_collection(
-            ASTRA_DB_COLLECTION,
-            definition=collection_definition,
-        )        
-        print(f"Collection '{ASTRA_DB_COLLECTION}' created successfully with lexical options and OpenAI embeddings via Astra integration '{ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME}'.")
-    else:
-        print(f"Collection '{ASTRA_DB_COLLECTION}' already exists.")
-    # --- End of new code ---
-
-    collection = db.get_collection(ASTRA_DB_COLLECTION)
-    print(f"Connected to collection: '{ASTRA_DB_COLLECTION}'")
-
-    # Find all products.jsonl files
     product_files = glob.glob("products/*/products.jsonl")
     print(f"Found {len(product_files)} product file(s):")
     for f in product_files:
@@ -155,16 +104,14 @@ def load_products():
                     try:
                         product_data = json.loads(line.strip())
                         
-                        doc_to_insert = product_data.copy() # Start with original data
+                        doc_to_insert = product_data.copy()
 
-                        # Create the document for insertion with $hybrid
                         generated_markdown = as_markdown(doc_to_insert)
                         if generated_markdown:
-                            doc_to_insert['$hybrid'] = generated_markdown
+                            doc_to_insert[text_field_name] = generated_markdown
                         else:
-                            print(f"  Warning: descriptive content missing or empty in document from {file_path}. '$hybrid' field will not be generated.")
+                            print(f"  Warning: descriptive content missing or empty in document from {file_path}. '{text_field_name}' field will not be populated.")
                         
-                        # Insert the modified document
                         response = collection.insert_one(doc_to_insert)
                         
                         inserted_in_file += 1
