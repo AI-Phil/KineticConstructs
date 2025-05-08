@@ -43,7 +43,7 @@ Get your free-forever, serverless vector database:
 *   Go to [astra.datastax.com](https://astra.datastax.com).
 *   Sign up or log in (using GitHub is easy!).
 *   Click `Databases` -> `Create Database`.
-*   Select `Serverless (Vector)`, choose a Cloud Provider/Region, and name your database (e.g., `agentic-ai`).
+*   Select `Serverless (Vector)`, choose Amazon Web Services as Cloud Provider, choose us-east-2 as Region, and name your database (e.g., `KineticConstructs`).
 
     ![astradb](./docs/images/astra-create-vector-db.png)
 
@@ -70,26 +70,20 @@ For Astra DB to automatically generate embeddings (e.g., when using the `$vector
 1.  **Navigate to Astra DB Integrations:**
     *   Go to your [Astra DB dashboard](https://astra.datastax.com).
     *   In the top navigation bar, click _settings_ **Settings**.
-    *   In the **Settings** navigation menu on the left, ensure your active organization is selected (it usually is by default).
     *   Click on **Integrations** under your organization's settings.
 
 2.  **Add OpenAI Embedding Provider:**
     *   Look for the **OpenAI** card under "Available Integrations" or "Embedding Providers."
-    *   Click **Add Integration** or **Configure** on the OpenAI card.
+    *   Click **Add Integration** on the OpenAI card.
 
-3.  **Add Credential:**
-    *   You'll be prompted to add a credential for this integration.
-    *   **Credential Name:** Enter a descriptive name, for example, `WorkshopOpenAIKey`.
+3.  **Add API key:**
+    *   You'll be prompted to add a **API key name:** Enter a descriptive name, for example, `WorkshopOpenAIKey`.
     *   **OpenAI API Key:** Paste the **API Key** you obtained from OpenAI in the previous step.
-    *   **Model Name:** It's recommended to use `text-embedding-ada-002` for this workshop, as it's efficient and aligns with the embeddings our initial data load will use. Select this model if available in a dropdown, or enter it if it's a text field. (If newer small models like `text-embedding-3-small` are available and you prefer, ensure consistency with data loading).
-    *   Click **Add Credential** (or a similar button like **Save** or **Validate & Add**).
+    *   You need to specify which of your databases can use it. Add your database to scope.
+    *   Select your workshop database (e.g., `KineticConstructs` or the name you chose) from the list of available databases.
+    *   Click **Add API key**.
 
-4.  **Scope Credential to Database:**
-    *   Once the credential is added, you need to specify which of your databases can use it.
-    *   Find the credential you just created (e.g., `WorkshopOpenAIKey`) in the list of credentials for the OpenAI integration.
-    *   Click on options like **Manage Scopes**, **Edit Scopes**, or **Add to Databases** associated with that credential.
-    *   Select your workshop database (e.g., `agentic-ai` or the name you chose) from the list of available databases.
-    *   Confirm or save the scope changes.
+    ![add api key](./docs/images/astra-add-api-key.png)
 
 By completing these steps, you've authorized your Astra DB instance to use your OpenAI account for embedding generation. This is crucial for some of the advanced search functionalities we'll explore.
 
@@ -103,22 +97,19 @@ Let's use GitHub Codespaces for a seamless development experience. It sets up ev
     *   Navigate to the main workshop repository page: [https://github.com/difli/KineticConstructs](https://github.com/difli/KineticConstructs).
     *   Click the `Fork` button (usually near the top right of the page).
 
-    ![Fork Button](./docs/images/github-fork-button.png) *<- Placeholder: Add correct image path for Fork button*
+    ![Fork Button](./docs/images/github-fork-button.png)
 
 2.  **Configure Your Fork:**
     *   On the "Create a new fork" page, your GitHub account should be pre-selected as the owner.
-    *   **Important:** Keep the default `Repository name` as `KineticConstructs`. Changing this name will likely cause issues with the pre-configured paths for `node_modules` and Langflow settings in the Codespace environment.
-    *   You can add an optional description.
+    *   **Important:** Keep the default `Repository name` as `KineticConstructs`. 
     *   Ensure `Copy the workshop branch only` is **UNCHECKED** if such an option appears (forking typically includes all branches by default, which is what we want).
     *   Click `Create fork`.
-
-    ![Create Fork Options](./docs/images/github-create-fork-options.png) *<- Placeholder: Add correct image path for Fork options page*
 
 3.  **Navigate to Your Forked Repository:** After a few moments, you'll be taken to the main page of *your* forked repository (e.g., `https://github.com/YOUR_USERNAME/KineticConstructs`).
 
 4.  **Switch to the `workshop` branch:** On your forked repository's page, use the branch selector dropdown (it might initially show `main` or another default branch) and select the `workshop` branch. This branch contains the starting point for our exercises.
 
-    ![Switch Branch](./docs/images/github-switch-branch.png) *<- Placeholder: Add correct image path for switching branch*
+    ![Switch Branch](./docs/images/github-switch-branch.png) 
 
 5.  **Create Codespace on the `workshop` branch:**
     *   Ensure you are on the `workshop` branch of your forked repository.
@@ -166,7 +157,7 @@ Let's use GitHub Codespaces for a seamless development experience. It sets up ev
     ```
     These scripts use the credentials from your `.env` file to connect to Astra DB and create/populate the `products` and `documents` collections. Wait for both scripts to complete. You might see some output indicating the collections are being created and data is being loaded.
 
-![Terminal Output After Data Loading Scripts](./docs/images/terminal-data-loading-output.png)
+    ![Terminal Output After Data Loading Scripts](./docs/images/terminal-data-loading-output.png)
 
 ## 🚀 Running the Application (Initial State) & Understanding Basic Filtering (`server.js`)
 
@@ -281,7 +272,7 @@ Open the application. Use the main search box. Try searching for concepts:
 *   "gear for climbing mountains"
 Notice how the results relate semantically. Combine this with the filters.
 
-![Application Vector Search with server_1.js](./docs/images/app-vector-search-server-1.png)
+![Application Vector Search with server_1.js](./docs/images/app-vector-search.png)
 
 Stop the server (Ctrl+C).
 
@@ -333,12 +324,9 @@ Run the third iteration:
 ```bash
 node server_2.js
 ```
-Open the application. Try searches combining concepts and keywords:
-*   "waterproof gore-tex hiking boots"
-*   "lightweight tent for backpacking"
-Compare the results to the pure vector search.
+Open the application. Try searches combining concepts and keywords and compare the results to the pure vector search.
 
-![Application Hybrid Search with server_2.js](./docs/images/app-hybrid-search-server-2.png)
+![Application Hybrid Search with server_2.js](./docs/images/app-hybrid-search.png)
 
 Stop the server (Ctrl+C).
 
@@ -417,7 +405,7 @@ Open the application. You should now see two search boxes.
 *   Then, add a specific keyword in the second box (e.g., "tent").
 *   Observe how the results change and combine both aspects.
 
-![Application Advanced Hybrid Search with server_3.js](./docs/images/app-advanced-hybrid-search-server-3.png)
+![Application Advanced Hybrid Search with server_3.js](./docs/images/app-advanced-hybrid-search.png)
 
 Stop the server (Ctrl+C).
 
