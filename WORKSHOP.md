@@ -93,19 +93,7 @@ For Astra DB to automatically generate embeddings (e.g., when using the `$vector
 
 By completing these steps, you've authorized your Astra DB instance to use your OpenAI account for embedding generation. This is crucial for some of the advanced search functionalities we'll explore.
 
-[SCREENSHOT: Astra DB Integrations page showing OpenAI configured, credential added, and scoped to the workshop database]
-
-## 🤖 Introducing the "Kinetic Constructs" Application
-
-Before we dive into the technical setup and coding, let's get acquainted with the application we'll be enhancing throughout this workshop.
-
-**Kinetic Constructs** is a fictional e-commerce platform specializing in innovative, interactive, and educational toys. The company prides itself on inspiring creativity, problem-solving, and collaborative play through products that blend physical construction with digital integration. Their catalog features diverse product lines such as ConstructoBots (programmable robots), LogicLeaps (electronic learning kits), ImagiWorlds (interactive playsets with AR), KinetiKits (advanced kinetic sets), and CreatiSpark (digital/electronic creative tools).
-
-Here's a look at the application's homepage:
-
-![Kinetic Constructs Homepage](./docs/images/kinetic_constructs_homepage.png)
-
-Currently, the application allows users to browse these products and apply basic filters (like category and tags). Our mission in this workshop is to supercharge its search capabilities, transforming it from a standard catalog into an intelligent discovery platform using Astra DB's vector search and Langflow.
+![Astra DB OpenAI Integration Configured](./docs/images/astra-db-openai-integration.png)
 
 ### 4. ⚡️ Launch the Workshop Environment in GitHub Codespaces
 
@@ -178,11 +166,11 @@ Let's use GitHub Codespaces for a seamless development experience. It sets up ev
     ```
     These scripts use the credentials from your `.env` file to connect to Astra DB and create/populate the `products` and `documents` collections. Wait for both scripts to complete. You might see some output indicating the collections are being created and data is being loaded.
 
-    [SCREENSHOT: Terminal showing successful output of data loading scripts]
+![Terminal Output After Data Loading Scripts](./docs/images/terminal-data-loading-output.png)
 
-## 🚀 Running the Application (Initial State)
+## 🚀 Running the Application (Initial State) & Understanding Basic Filtering (`server.js`)
 
-With setup complete, let's run the Node.js web server. We'll start with `server.js`, which implements basic filtering, to ensure the app structure works and you can see the product catalog.
+With setup complete, let's run the Node.js web server. We'll start with `server.js`, which implements basic filtering. This will allow us to ensure the app structure works, you can see the product catalog, and understand its foundational search mechanism.
 
 In the Codespace terminal:
 ```bash
@@ -192,20 +180,10 @@ You should see output indicating the server is running, likely on port 3000. Cod
 
 You should see the product catalog web page with search and filtering options. Try using the sidebar filters.
 
-![Kinetic Constructs Filtering](./docs/images/kinetic-constructs-filter-tag-category.png)
+![Application Filtering with server.js](./docs/images/kinetic-constructs-filter-tag-category.png)
 
-🎉 **Congrats! You've finished the setup and have the application running.** Now, let's dive into how the different search features are implemented.
-
-*(Press Ctrl+C in the terminal to stop the server before proceeding to the next steps).*\
-
-## 📦 Workshop Follow-Along
-
-### Iteration 1: Filtering by Category and Tag (`server.js`)
-
-This initial version demonstrates basic product search using DataStax Astra DB's Data API. The code shows how to search our ConstructoBots, LogicLeaps, and other product lines using MongoDB-style queries.
-
-**How it Works:**
-We use the `@datastax/astra-db-ts` client library. The `collection.find()` method accepts a `filter` object. We dynamically build this filter based on user selections for product family, type, and tags.
+**How Basic Filtering Works (`server.js`):**
+This initial version demonstrates basic product search using DataStax Astra DB's Data API. The code shows how to search our ConstructoBots, LogicLeaps, and other product lines using MongoDB-style queries. We use the `@datastax/astra-db-ts` client library. The `collection.find()` method accepts a `filter` object. We dynamically build this filter based on user selections for product family, type, and tags.
 
 For example:
 *   All ConstructoBots wheeled robots: `{ family: "ConstructoBots", product_type: "Wheeled Robots" }`
@@ -249,18 +227,16 @@ products = await cursor.toArray();
 console.log(`find returned ${products.length} results.`);
 ```
 
-**Try it Out:**
-Run this version of the server:
-```bash
-node server.js
-```
-Open the application in your browser. Use the sidebar filters for "Family", "Product Type", and "Tags". Observe how the product list updates. Check the terminal logs in Codespaces to see the `filter` object.
+**Observe and Understand:**
+With `server.js` running, use the sidebar filters for "Family", "Product Type", and "Tags". Observe how the product list updates. Check the terminal logs in Codespaces to see the `filter` object being constructed and logged. This shows you the direct translation of your UI selections into a database query.
 
-[SCREENSHOT: Application showing category/tag filters and filtered results using server.js]
+🎉 **Congrats! You've run the initial application and seen how its basic filtering works.**
 
-Stop the server (Ctrl+C).
+*(Press Ctrl+C in the terminal to stop the server before proceeding to the next steps).*\
 
-### Iteration 2: Semantic Vector Search (`server_1.js` with `$vectorize`)
+## 📦 Workshop Follow-Along
+
+### Iteration 1: Semantic Vector Search (`server_1.js` with `$vectorize`)
 
 In this version, we enhance our search capabilities by adding vector search using Astra DB's `$vectorize` operator. The beauty of this enhancement is that we don't need to modify our existing filter logic – we simply add vector search as an additional option when a text query is provided.
 
@@ -305,11 +281,11 @@ Open the application. Use the main search box. Try searching for concepts:
 *   "gear for climbing mountains"
 Notice how the results relate semantically. Combine this with the filters.
 
-[SCREENSHOT: Application showing vector search results for a conceptual query using server_1.js]
+![Application Vector Search with server_1.js](./docs/images/app-vector-search-server-1.png)
 
 Stop the server (Ctrl+C).
 
-### Iteration 3: Hybrid Search (`server_2.js` with `$hybrid`)
+### Iteration 2: Hybrid Search (`server_2.js` with `$hybrid`)
 
 In `server_2.js`, we enhance our search capabilities by implementing hybrid search, which combines both semantic vector search and lexical (keyword) search. This provides more accurate and relevant results by considering both semantic meaning and keyword matches.
 
@@ -362,11 +338,11 @@ Open the application. Try searches combining concepts and keywords:
 *   "lightweight tent for backpacking"
 Compare the results to the pure vector search.
 
-[SCREENSHOT: Application showing hybrid search results using server_2.js]
+![Application Hybrid Search with server_2.js](./docs/images/app-hybrid-search-server-2.png)
 
 Stop the server (Ctrl+C).
 
-### Iteration 4: Advanced Hybrid Search with Explicit Keywords (`server_3.js`)
+### Iteration 3: Advanced Hybrid Search with Explicit Keywords (`server_3.js`)
 
 In `server_3.js` (formerly `server_0.js`), we take hybrid search a step further by allowing users to specify both semantic and keyword search criteria independently. This gives users more control over how their search is performed.
 
@@ -441,11 +417,11 @@ Open the application. You should now see two search boxes.
 *   Then, add a specific keyword in the second box (e.g., "tent").
 *   Observe how the results change and combine both aspects.
 
-[SCREENSHOT: Application showing two search boxes for advanced hybrid search using server_3.js]
+![Application Advanced Hybrid Search with server_3.js](./docs/images/app-advanced-hybrid-search-server-3.png)
 
 Stop the server (Ctrl+C).
 
-### Iteration 5: Simplify with Langflow!
+### Iteration 4: Simplify with Langflow!
 
 Implementing the search logic directly in Node.js is effective, but Langflow provides a visual, low-code/no-code way to build, manage, test, and deploy these AI flows as API endpoints. This separates the AI logic from the main application code, making both easier to maintain and update.
 
@@ -463,7 +439,7 @@ Implementing the search logic directly in Node.js is effective, but Langflow pro
     ```
     Open Langflow in your browser using the URL provided in the `PORTS` tab (likely port 7860).
 
-    [SCREENSHOT: Langflow UI loading in the browser]
+    ![Langflow UI in Browser](./docs/images/langflow-ui-loading.png)
 
 2.  **Build the Hybrid Search Flow:**
     *   Inside Langflow, click "New Project" or navigate to create a new flow.
@@ -484,13 +460,13 @@ Implementing the search logic directly in Node.js is effective, but Langflow pro
     *   **Connect Components:** Drag a connection from the output handle of `TextInput` to the `Input Value` input handle of `AstraDBRetriever`. Drag a connection from the output handle of `AstraDBRetriever` to the input handle of `ChatOutput`.
     *   **Save:** Click the Save icon and give your flow a name (e.g., "Hybrid Product Search").
 
-    [SCREENSHOT: Langflow canvas showing the components connected: TextInput -> AstraDBRetriever (Hybrid configured) -> ChatOutput]
+    ![Langflow Hybrid Search Flow Diagram](./docs/images/langflow-hybrid-search-flow.png)
 
 3.  **Get the API Endpoint:**
     *   With your flow open, click the API button (usually looks like `<>`) in the Langflow toolbar.
     *   A modal will appear showing example `curl` commands and Python snippets. Note the **endpoint URL** (it includes a unique Flow ID) and the expected **JSON input structure** (it should use the `input_value` key matching your `TextInput` name).
 
-    [SCREENSHOT: Langflow UI showing the API endpoint details modal for the flow]
+    ![Langflow API Endpoint Modal](./docs/images/langflow-api-modal.png)
 
 4.  **Implement `server_langflow.js` (Manual Step for You):**
     Now, you'll create `server_langflow.js`. The easiest way is to copy `server_2.js` and modify the `/search` route handler. Instead of calling `productCollection.findAndRerank`, you'll use `fetch` (or another HTTP client like `axios`) to make a POST request to the Langflow API endpoint you noted.
@@ -591,7 +567,7 @@ Implementing the search logic directly in Node.js is effective, but Langflow pro
     *   Run the final iteration: `node server_langflow.js`.
     *   Open the application and perform searches. Debug the Langflow API call and result parsing until you see the search results correctly populated from your Langflow flow!
 
-    [SCREENSHOT: Application showing search results fetched via Langflow API call from server_langflow.js]
+    ![Application with Langflow Search Results (server_langflow.js)](./docs/images/app-langflow-results.png)
 
 ## 🎉 Workshop Complete!
 
