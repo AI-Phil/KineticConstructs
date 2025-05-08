@@ -141,7 +141,7 @@ app.get('/search', async (req, res) => {
     const requestedType = req.query.type;
     let requestedTags = req.query.tag || [];
     if (typeof requestedTags === 'string') requestedTags = [requestedTags];
-    const queryText = req.query.q;
+    const semanticQuery = req.query.q;
 
     // Build compound filter for family/type and tags
     const filterConditions = [];
@@ -165,10 +165,11 @@ app.get('/search', async (req, res) => {
         filter = filterConditions[0];
     }
 
-    const options = queryText ? { 
-        limit: 25,
-        sort: { $hybrid: queryText }
-    } : {};
+    let options = {};
+    if (semanticQuery) {
+        options.sort = { $hybrid: semanticQuery };
+        options.limit = 25;
+    }
 
     let products = [];
     let error = null;
@@ -179,7 +180,7 @@ app.get('/search', async (req, res) => {
         try {
             console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
             
-            if (queryText) {
+            if (semanticQuery) {
                 const cursor = await productCollection.findAndRerank(filter, options);
                 const rankedResults = await cursor.toArray();
                 products = rankedResults.map(result => result.document);

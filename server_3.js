@@ -142,6 +142,7 @@ app.get('/search', async (req, res) => {
     let requestedTags = req.query.tag || [];
     if (typeof requestedTags === 'string') requestedTags = [requestedTags];
     const semanticQuery = req.query.q;
+    const keywordQuery = req.query.keyword;
 
     // Build compound filter for family/type and tags
     const filterConditions = [];
@@ -166,8 +167,12 @@ app.get('/search', async (req, res) => {
     }
 
     let options = {};
-    if (semanticQuery) {        
-        options.sort = { $vectorize: semanticQuery };
+    if (semanticQuery) {
+        if (keywordQuery) {
+            options.sort = { $hybrid: { $vectorize: semanticQuery, $lexical: keywordQuery } };
+        } else {
+            options.sort = { $vectorize: semanticQuery };
+        }
         options.limit = 25;
     }
 
@@ -179,9 +184,17 @@ app.get('/search', async (req, res) => {
     } else {
         try {
             console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
-            const cursor = await productCollection.find(filter, options);
-            products = await cursor.toArray();
-            console.log(`Fetched ${products.length} products.`);
+            
+            if (semanticQuery && keywordQuery) {
+                const cursor = await productCollection.findAndRerank(filter, options);
+                const rankedResults = await cursor.toArray();
+                products = rankedResults.map(result => result.document);
+                console.log(`findAndRerank returned ${products.length} results.`);
+            } else {
+                const cursor = await productCollection.find(filter, options);
+                products = await cursor.toArray();
+                console.log(`find returned ${products.length} results.`);
+            }
         } catch (e) {
             console.error("Error fetching products:", e);
             error = "Could not retrieve products.";
@@ -215,7 +228,7 @@ app.get('/search', async (req, res) => {
         currentTags: requestedTags,
         queryParams: req.query,
         semanticSearchEnabled: true,
-        keywordSearchEnabled: false
+        keywordSearchEnabled: true
     });
 });
 

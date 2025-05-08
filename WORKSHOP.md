@@ -105,7 +105,9 @@ if (filterConditions.length > 1) {
     filter = filterConditions[0];
 }
 
-const cursor = await productCollection.find(filter);
+let options = {};
+
+const cursor = await productCollection.find(filter, options);
 const products = await cursor.toArray();
 ```
 
@@ -117,22 +119,19 @@ node server.js
 
 ### Search using Vectorize
 
-In this version, we enhance our search capabilities by adding vector search using Astra DB's built-in `$vectorize` operator. The beauty of this enhancement is that we don't need to modify our existing filter logic - we simply add vector search as an additional option.
+In this version, we enhance our search capabilities by adding vector search using Astra DB's `$vectorize` operator. The beauty of this enhancement is that we don't need to modify our existing filter logic - we simply add vector search as an additional option.
 
 Here are the only changes needed:
 
 ```javascript
-// Add this line to get the search query
-const queryText = req.query.q;
+// Add this line to get the search query from the request
+const semanticQuery = req.query.q;
 
 // Add these lines before the find() call
-const options = queryText ? { 
-    limit: 25,
-    sort: { $vectorize: queryText }
-} : {};
-
-// Modify the find() call to include options
-const cursor = await productCollection.find(filter, options);
+if (semanticQuery) {        
+    options.sort = { $vectorize: semanticQuery };
+    options.limit = 25;
+}
 ```
 
 We also update the search page to enable semantic search by enabling a property in the template context:
@@ -141,6 +140,7 @@ We also update the search page to enable semantic search by enabling a property 
 res.render('search', {
     // ... other properties ...
     semanticSearchEnabled: true,
+    keywordSearchEnabled: false
 });
 ```
 
@@ -159,19 +159,19 @@ node server_1.js
 
 ### Search with Hybrid Search
 
-Hybrid search combines both semantic vector search along with a ranked keyword search of the product description. This provides more accurate and relevant results by considering both the semantic meaning and exact keyword matches.
+In `server_2.js`, we enhance our search capabilities by implementing hybrid search, which combines both semantic vector search and lexical search. This provides more accurate and relevant results by considering both semantic meaning and keyword matches.
 
 The key changes from the previous version are:
 
 ```javascript
-// We switch from $vectorize to $hybrid in our search options
-const options = queryText ? { 
-    limit: 25,
-    sort: { $hybrid: queryText }
-} : {};
+// We switch from $vectorize to $hybrid in our sort options
+if (semanticQuery) {
+    options.sort = { $hybrid: semanticQuery };
+    options.limit = 25;
+}
 
 // Use findAndRerank for text queries, regular find otherwise
-if (queryText) {
+if (semanticQuery) {
     const cursor = await productCollection.findAndRerank(filter, options);
     const rankedResults = await cursor.toArray();
     products = rankedResults.map(result => result.document);
@@ -193,4 +193,63 @@ To see this in action, run:
 
 ```bash
 node server_2.js
+```
+
+### Hybrid Search with Explict Keywords
+
+In `server_3.js`, we take hybrid search a step further by allowing users to specify both semantic and keyword search criteria independently. This gives users more control over how their search is performed.
+
+The key changes include:
+
+```javascript
+// Get both semantic and keyword queries from the request
+const semanticQuery = req.query.q;
+const keywordQuery = req.query.keyword;
+
+// Configure hybrid search with both vector and lexical components, and just vector if no keywords
+if (semanticQuery) {
+    if (keywordQuery) {
+        options.sort = { $hybrid: { $vectorize: semanticQuery, $lexical: keywordQuery } };
+    } else {
+        options.sort = { $vectorize: semanticQuery };
+    }
+    options.limit = 25;
+}
+
+// And then use hybrid search if we have both semantic and keywords, otherwise
+// fall back to the standard search
+if (semanticQuery && keywordQuery) {
+    const cursor = await productCollection.findAndRerank(filter, options);
+    const rankedResults = await cursor.toArray();
+    products = rankedResults.map(result => result.document);
+    console.log(`findAndRerank returned ${products.length} results.`);
+} else {
+    const cursor = await productCollection.find(filter, options);
+    products = await cursor.toArray();
+    console.log(`find returned ${products.length} results.`);
+}
+```
+
+The UI has been updated to support this with separate input fields for semantic and keyword search:
+
+```javascript
+res.render('search', {
+    // ... other properties ...
+    semanticSearchEnabled: true,
+    keywordSearchEnabled: true
+});
+```
+
+This advanced implementation provides:
+- Independent control over semantic and keyword search components
+- The ability to use semantic search alone, keyword search alone, or both together
+- More precise control over search results by combining different search strategies
+- Automatic reranking of results based on both semantic and keyword relevance
+- Continued support for all filtering capabilities (family, type, tags)
+
+
+To see this in action, run:
+
+```bash
+node server_3.js
 ```
