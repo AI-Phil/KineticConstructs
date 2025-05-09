@@ -4,7 +4,7 @@ const express = require('express');
 const path = require('path');
 const { DataAPIClient } = require("@datastax/astra-db-ts");
 const { marked } = require('marked'); // If you still render markdown from product/document details
-const fetch = require('node-fetch'); // Or your preferred HTTP client
+// const fetch = require('node-fetch'); // No longer needed, Node.js v20+ has native fetch
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -110,6 +110,7 @@ async function queryLangflowRAG(userQuery) {
     console.log(`Calling Langflow RAG API: ${langflowApiUrl} with body: ${JSON.stringify(requestBody)}`);
 
     try {
+        // Native fetch is available in Node.js v20+
         const response = await fetch(langflowApiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
