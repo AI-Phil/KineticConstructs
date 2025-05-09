@@ -293,6 +293,65 @@ app.get('/product/:productId', async (req, res) => {
     });
 });
 
+// Product detail page by SKU
+app.get('/product/sku/:sku', async (req, res) => {
+    const sku = req.params.sku;
+    const searchQueryParams = req.query;
+    const requestedDocId = req.query.doc;
+
+    let product = null;
+    let initialDocContent = null;
+    let initialDocTitle = null;
+    let error = null;
+
+    if (!productCollection || !documentCollection) {
+        error = "Database connection error.";
+    } else {
+        try {
+            console.log(`Fetching product with SKU: ${sku}`);
+            product = await productCollection.findOne({ sku: sku });
+            
+            if (product) {
+                // Attach document metadata to product
+                product.documentation = [];
+                if (product.documentation_ids && Array.isArray(product.documentation_ids)) {
+                    product.documentation = product.documentation_ids
+                        .map(id => ({ id: id, title: docTitleMap.get(id) || id }))
+                        .sort((a, b) => a.title.localeCompare(b.title)); 
+                }
+
+                // Load initial document if specified
+                if (requestedDocId && product.documentation.some(doc => doc.id === requestedDocId)) {
+                    console.log(`Fetching initial document content for docId: ${requestedDocId}`);
+                    const docData = await documentCollection.findOne({ _id: requestedDocId }, {
+                        projection: { content: 1, title: 1 }
+                    });
+                    if (docData && docData.content) {
+                        initialDocContent = marked(docData.content);
+                        initialDocTitle = docData.title || requestedDocId;
+                    }
+                }
+            } else {
+                error = "Product not found.";
+            }
+        } catch (e) {
+            console.error(`Error fetching product with SKU ${sku}:`, e);
+            error = "Could not retrieve product details.";
+        }
+    }
+
+    res.render('product', { 
+        title: product ? product.name : 'Product Not Found',
+        product: product,
+        error: error,
+        script: '/js/product-detail.js',
+        searchParams: searchQueryParams,
+        initialDocContent: initialDocContent,
+        initialDocTitle: initialDocTitle,
+        initialDocId: requestedDocId
+    });
+});
+
 // Document content API endpoint
 app.get('/api/document/:docId', async (req, res) => {
     const docId = req.params.docId;
