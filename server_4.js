@@ -161,61 +161,78 @@ app.get('/', (req, res) => {
 });
 
 app.get('/search', async (req, res) => {
-    const queryText = req.query.q; // Single query input from the UI
-    
+    const queryText = req.query.q;
+    const requestedFamily = req.query.family;
+    const requestedType = req.query.type;
+    let requestedTags = req.query.tag || [];
+    if (typeof requestedTags === 'string') requestedTags = [requestedTags];
+
     let displayAnswer = null;
-    let productsToDisplay = []; // May or may not be used depending on UI design
+    let productsToDisplay = [];
     let searchError = null;
 
     if (queryText) {
+        // If there's a search query, call Langflow RAG
+        console.log(`Performing Langflow RAG search for: "${queryText}"`);
         const langflowResult = await queryLangflowRAG(queryText);
         displayAnswer = langflowResult.answer;
         searchError = langflowResult.error;
-        // If your Langflow flow was modified to also return raw products, extract them here.
-        // For now, productsToDisplay will remain empty when using Langflow.
+        // productsToDisplay will remain empty here, focusing on RAG answer.
+        // Filters from UI (family, type, tags) are not applied to Langflow RAG query in this version.
     } else {
-        // Optional: Handle case with no query - e.g., show all products or an empty state
-        // This might involve a direct DB call if you want to show products without a query.
-        // Example: 
-        // if (productCollection) {
-        //   try {
-        //     const cursor = await productCollection.find({}, {limit: 20 }); // Get some default products
-        //     productsToDisplay = await cursor.toArray();
-        //   } catch (dbError) {
-        //     console.error("Error fetching default products:", dbError);
-        //     searchError = "Error fetching initial product list.";
-        //   }
-        // } else {
-        //   searchError = "Database not available for initial product list.";
-        // }
+        // No search query, so perform filtering like server.js
+        console.log("No search query (q), performing filter-based product search.");
+        const filterConditions = [];
+        if (requestedFamily) {
+            const familyTypeFilter = { family: requestedFamily };
+            if (requestedType) familyTypeFilter.product_type = requestedType;
+            filterConditions.push(familyTypeFilter);
+        }
+        if (requestedTags.length > 0) {
+            filterConditions.push({ tags: { $all: requestedTags } });
+        }
+        let filter = {};
+        if (filterConditions.length > 1) filter = { $and: filterConditions };
+        else if (filterConditions.length === 1) filter = filterConditions[0];
+
+        if (productCollection) {
+            try {
+                console.log(`Querying products with filter: ${JSON.stringify(filter)}`);
+                const cursor = await productCollection.find(filter, {}); // Empty options for basic filter
+                productsToDisplay = await cursor.toArray();
+                console.log(`Filter-based search returned ${productsToDisplay.length} products.`);
+            } catch (dbError) {
+                console.error("Error fetching products with filter:", dbError);
+                searchError = "Error retrieving products based on filters.";
+            }
+        } else {
+            searchError = "Database product collection not available for filtering.";
+        }
     }
 
-    // Data for rendering filters and other UI elements, fetched during initialization
-    const dynamicTagCounts = new Map(); // Recalculate if productsToDisplay is populated
-    if (productsToDisplay.length > 0) {
-         productsToDisplay.forEach(product => {
-            if (product.tags && Array.isArray(product.tags)) {
-                product.tags.forEach(tag => dynamicTagCounts.set(tag, (dynamicTagCounts.get(tag) || 0) + 1));
-            }
-        });
-    }
+    const dynamicTagCounts = new Map();
+    productsToDisplay.forEach(product => {
+        if (product.tags && Array.isArray(product.tags)) {
+            product.tags.forEach(tag => dynamicTagCounts.set(tag, (dynamicTagCounts.get(tag) || 0) + 1));
+        }
+    });
     const displayTags = tagsByFrequency.map(tagInfo => ({
         tag: tagInfo.tag,
         dynamicCount: dynamicTagCounts.get(tagInfo.tag) || 0
     }));
 
     res.render('search', {
-        title: 'Search Products - Powered by Langflow',
-        products: productsToDisplay, 
+        title: 'Search Products',
+        products: productsToDisplay,
         displayAnswer: displayAnswer,
         error: searchError,
-        hierarchy: productHierarchy, 
-        displayTags: displayTags,    
-        currentFamily: req.query.family, // Keep for filter UI consistency
-        currentType: req.query.type,   // Keep for filter UI consistency
-        currentTags: typeof req.query.tag === 'string' ? [req.query.tag] : (req.query.tag || []), // Keep for filter UI consistency
+        hierarchy: productHierarchy,
+        displayTags: displayTags,
+        currentFamily: requestedFamily,
+        currentType: requestedType,
+        currentTags: requestedTags,
         queryParams: req.query,
-        langflowRagMode: true // New flag for EJS to adjust UI (e.g., show answer section)
+        langflowRagMode: !!queryText // True if queryText exists (Langflow was called), false otherwise
     });
 });
 
@@ -299,13 +316,12 @@ app.get('/api/document/:docId', async (req, res) => {
 // Server startup
 initializeDbAndData().then(() => {
     app.listen(port, () => {
-        console.log(`Server_4.js (Langflow RAG) listening at http://localhost:${port}`);
-        console.log("Ensure Langflow is running and accessible, and that the API endpoint in server_4.js is correctly set.");
+        console.log(`Server_4.js (Hybrid: Langflow RAG / Filtered Search) listening at http://localhost:${port}`);
+        console.log("Ensure Langflow is running, accessible, and API endpoint in .env is correct.");
     });
 }).catch(err => {
-    console.error("Failed to initialize database and data before starting server_4.js:", err);
-    // Still start the server, but it might not have all UI elements like filters populated
+    console.error("Failed to initialize DB/data for server_4.js:", err);
     app.listen(port, () => {
-        console.log(`Server_4.js (Langflow RAG) listening at http://localhost:${port}, but DB/data initialization failed.`);
+        console.log(`Server_4.js (Hybrid Mode) listening at http://localhost:${port}, but DB/data initialization failed.`);
     });
 }); 
