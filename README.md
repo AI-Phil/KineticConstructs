@@ -477,95 +477,98 @@ The final output from Langflow must be a string with each SKU on a new line, eac
     *   The expected JSON input for the API call will be `{"input_value": "user query text"}`.
 
 4.  **Review `server_4.js` Implementation:**
-    `server_4.js` is already structured to work with this SKU-based Langflow integration. Let's highlight the key parts of its `/search` route and the `queryLangflowRAG` function:
+    `server_4.js` shifts the responsibility of interpreting the natural language query. Instead of `server_3.js` directly using Astra DB's `$hybrid` or `$vectorize` search, `server_4.js` calls a Langflow API endpoint. Langflow processes the query and returns a list of relevant product SKUs. The Node.js server then uses these SKUs to fetch the final details from Astra DB, applying sidebar filters and respecting Langflow's ordering.
 
-    **Code Highlights (`server_4.js`):**
+    **Key Differences from `server_3.js` to `server_4.js`:**
+
+    *   **Environment:** Checks for `LANGFLOW_RAG_API_ENDPOINT` in `.env`.
+    *   **New Function:** Introduces `queryLangflowRAG(userQuery)` to handle the API call to Langflow and parse the returned SKUs.
+    *   **Search Route (`/search`):**
+        *   **Removed:** Direct use of `$vectorize`, `$hybrid`, and `findAndRerank` based on `req.query.q` or `req.query.keyword`.
+        *   **Added:** If `req.query.q` (semantic query) exists:
+            *   Calls `queryLangflowRAG`.
+            *   Uses the returned `langflowSkus` to add an `{ sku: { $in: langflowSkus } }` condition to the database query filter.
+            *   If Langflow returns no SKUs for the query, adds `{ sku: '__LANGFLOW_RETURNED_NO_SKUS__' }` to the filter instead, ensuring the semantic query yields no results from the DB.
+        *   **Simplified DB Query:** Always uses `productCollection.find()` with the combined filter (sidebar selections + Langflow SKUs). The `options` object no longer contains `sort` clauses like `$vectorize` or `$hybrid`.
+        *   **Added Reordering:** After fetching products from the database, if Langflow provided SKUs, the `products` array is explicitly re-sorted to match the order of SKUs in the `langflowSkus` list.
+        *   **View:** Sets `keywordSearchEnabled: false` when rendering, as the second keyword input is not used in this approach.
+    *   **Startup:** Added a console log reminding the user about the Langflow dependency.
+
+    **Code Highlights (Illustrating the Key Changes):**
     ```javascript
-    // server_4.js - queryLangflowRAG function
-    async function queryLangflowRAG(userQuery) {
-        const langflowApiUrl = process.env.LANGFLOW_RAG_API_ENDPOINT; // From .env
-        const requestBody = { input_value: userQuery };
-        console.log(`Calling Langflow RAG API (SKU mode): ${langflowApiUrl} with body: ${JSON.stringify(requestBody)}`);
+// server_4.js - New function to call Langflow
+async function queryLangflowRAG(userQuery) {
+    const langflowApiUrl = process.env.LANGFLOW_RAG_API_ENDPOINT;
+    const requestBody = { input_value: userQuery };
+    // ... (fetch call to langflowApiUrl)
+    // ... (response handling and parsing logic)
+    // ... (extracts skus from result.outputs[0].outputs[0].results.message.text)
+    // Returns { skus: Array<string>, error: string | null }
+}
 
-        try {
-            const response = await fetch(langflowApiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }, // Add API key header if Langflow needs it
-                body: JSON.stringify(requestBody),
-            });
+// server_4.js - /search route changes (conceptual)
+app.get('/search', async (req, res) => {
+    const semanticQuery = req.query.q;
+    // ... (get sidebar filters: requestedFamily, requestedType, requestedTags)
+    
+    const filterConditions = [];
+    let error = null;
+    // ... (add sidebar filters to filterConditions)
 
-            if (!response.ok) { /* ... error handling ... */ }
-
-            const result = await response.json();
-            let skus = [];
-            // Path to SKUs: result.outputs[0].outputs[0].results.message.text
-            if (result.outputs && result.outputs[0]?.outputs[0]?.results?.message?.text) {
-                const skuText = result.outputs[0].outputs[0].results.message.text;
-                // Parses newline-separated SKUs, potentially with a "Text: " prefix
-                skus = skuText.trim().split('\\n')
-                    .map(line => {
-                        const trimmedLine = line.trim();
-                        if (trimmedLine.startsWith('Text: ')) { // Handles potential "Text: " prefix
-                            return trimmedLine.substring(6).trim();
-                        }
-                        return trimmedLine;
-                    })
-                    .filter(s => s && s !== 'Text:'); // Filter out empty or prefix-only lines
-                console.log('SKUs received from Langflow:', skus);
-            } else {
-                console.warn("Could not find expected SKU text in Langflow RAG response.");
-            }
-            return { skus, error: null };
-        } catch (e) { /* ... error handling ... */ }
+    let langflowSkus = null;
+    if (semanticQuery) {
+        // **CHANGE: Call Langflow instead of preparing $vectorize/$hybrid**
+        const langflowResult = await queryLangflowRAG(semanticQuery);
+        if (langflowResult.error) {
+            error = langflowResult.error;
+        } else if (langflowResult.skus && langflowResult.skus.length > 0) {
+            langflowSkus = langflowResult.skus;
+            // **CHANGE: Add SKU filter based on Langflow results**
+            filterConditions.push({ sku: { $in: langflowSkus } });
+        } else {
+            // **CHANGE: Ensure no results if Langflow finds none for the query**
+            filterConditions.push({ sku: '__LANGFLOW_RETURNED_NO_SKUS__' });
+        }
     }
 
-    // server_4.js - /search route (simplified)
-    app.get('/search', async (req, res) => {
-        const queryText = req.query.q; // User's main search query
-        const requestedFamily = req.query.family; // Sidebar filter
-        const requestedType = req.query.type;   // Sidebar filter
-        let requestedTags = req.query.tag || [];  // Sidebar filter
-        // ...
+    // **CHANGE: Build final filter simply**
+    let dbQueryFilter = {}; 
+    if (filterConditions.length > 1) {
+        dbQueryFilter = { $and: filterConditions };
+    } else if (filterConditions.length === 1) {
+        dbQueryFilter = filterConditions[0];
+    }
+    
+    let products = [];
+    if (!productCollection) { /* handle error */ } 
+    else {
+        try {
+            const options = { limit: 25 }; // **CHANGE: Simple options**
+            // **CHANGE: Always use find(), no findAndRerank**
+            const cursor = await productCollection.find(dbQueryFilter, options);
+            products = await cursor.toArray();
 
-        const filterConditions = []; // For Astra DB query
-        if (requestedFamily) { /* add family to filterConditions */ }
-        if (requestedType) { /* add type to filterConditions */ }
-        if (requestedTags.length > 0) { /* add tags to filterConditions */ }
-
-        let langflowSkus = null;
-        if (queryText) {
-            const langflowResult = await queryLangflowRAG(queryText);
-            if (langflowResult.error) {
-                // searchError = langflowResult.error;
-            } else if (langflowResult.skus && langflowResult.skus.length > 0) {
-                langflowSkus = langflowResult.skus;
-                filterConditions.push({ sku: { $in: langflowSkus } }); // Add SKUs to DB query
-            } else {
-                // Langflow returned no SKUs, so make the query match no products if 'q' was present
-                finalFilter = { sku: '__LANGFLOW_RETURNED_NO_SKUS__' }; 
+            // **CHANGE: Add explicit reordering based on Langflow SKU list**
+            if (semanticQuery && langflowSkus && langflowSkus.length > 0 && products.length > 0) {
+                const skuOrderMap = new Map(langflowSkus.map((sku, index) => [sku, index]));
+                products.sort((a, b) => skuOrderMap.get(a.sku) - skuOrderMap.get(b.sku));
             }
-        }
+            // ... (handle case where Langflow SKUs yield 0 DB results)
+        } catch (dbError) { /* handle error */ }
+    }
 
-        let finalFilter = {};
-        if (filterConditions.length > 1) {
-            finalFilter = { $and: filterConditions };
-        } else if (filterConditions.length === 1) {
-            finalFilter = filterConditions[0];
-        } else if (queryText && (!langflowSkus || langflowSkus.length === 0)) {
-            // If 'q' was used but no SKUs, ensure no products match from the Langflow part
-             finalFilter = { sku: '__LANGFLOW_RETURNED_NO_SKUS__' };
-        }
-        // If no queryText and no filters, finalFilter remains {} (find all)
+    // ... (prepare other view data)
 
-        // ... query productCollection with finalFilter ...
-        // ... render 'search.ejs' with products, semanticSearchEnabled: true ...
+    res.render('search', {
+        // ... other view variables
+        products: products,
+        error: error,
+        semanticSearchEnabled: true,
+        // **CHANGE: Keyword search field is not used in this server version**
+        keywordSearchEnabled: false  
     });
+});
     ```
-    *   **Key Points:**
-        *   `server_4.js` calls the Langflow endpoint defined in `LANGFLOW_RAG_API_ENDPOINT`.
-        *   It expects Langflow to return a JSON where `result.outputs[0].outputs[0].results.message.text` contains newline-separated SKUs (optionally prefixed with "Text: ").
-        *   These SKUs are then used in an `$in` clause for the `sku` field when querying the `products` collection in Astra DB.
-        *   Sidebar filters (family, type, tags) are added as additional conditions to the Astra DB query, combined with the SKUs using `$and`.
 
 5.  **Try it Out:**
     *   Ensure your Langflow SKU retrieval flow is running and the endpoint is correctly set in your `.env` file.
