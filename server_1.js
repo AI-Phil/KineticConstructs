@@ -132,7 +132,16 @@ app.use(express.json());
 
 // Routes
 app.get('/', (req, res) => {
-    res.render('home', { title: 'Welcome' });
+    const renderData = {
+        title: 'Welcome',
+        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || ''
+    };
+    if (req.get('X-Request-Partial') === 'true') {
+        res.set('X-Page-Title', renderData.title);
+        res.render('partials/home-main', renderData);
+    } else {
+        res.render('home', renderData);
+    }
 });
 
 // Search endpoint with filtering capabilities
@@ -214,6 +223,7 @@ app.get('/search', async (req, res) => {
         currentType: requestedType,
         currentTags: requestedTags,
         queryParams: req.query,
+        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
         semanticSearchEnabled: true,
         keywordSearchEnabled: false
     });
@@ -224,6 +234,8 @@ app.get('/product/:productId', async (req, res) => {
     const productId = req.params.productId;
     const searchQueryParams = req.query;
     const requestedDocId = req.query.doc;
+    const referer = req.get('referer') || '';
+    const fromSearchPage = referer.includes('/search');
 
     let product = null;
     let initialDocContent = null;
@@ -266,16 +278,32 @@ app.get('/product/:productId', async (req, res) => {
         }
     }
 
-    res.render('product', { 
-        title: product ? product.name : 'Product Not Found',
+    const pageTitle = product ? product.name : 'Product Not Found';
+    const renderData = {
         product: product,
         error: error,
         script: '/js/product-detail.js',
         searchParams: searchQueryParams,
         initialDocContent: initialDocContent,
         initialDocTitle: initialDocTitle,
-        initialDocId: requestedDocId
-    });
+        initialDocId: requestedDocId,
+        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
+        fromSearchPage: fromSearchPage
+    };
+
+    if (req.get('X-Request-Partial') === 'true') {
+        res.set('X-Page-Title', pageTitle);
+        // For partial, we don't need the overall page title or script vars used by the main layout
+        const partialData = { ...renderData };
+        delete partialData.script; // Not needed for the partial itself
+        // The 'title' variable for the <title> tag is handled by X-Page-Title header for partials
+        res.render('partials/product-main', partialData);
+    } else {
+        res.render('product', { 
+            title: pageTitle, 
+            ...renderData 
+        });
+    }
 });
 
 // Product detail page by SKU
@@ -283,6 +311,8 @@ app.get('/product/sku/:sku', async (req, res) => {
     const sku = req.params.sku;
     const searchQueryParams = req.query;
     const requestedDocId = req.query.doc;
+    const referer = req.get('referer') || '';
+    const fromSearchPage = referer.includes('/search');
 
     let product = null;
     let initialDocContent = null;
@@ -325,16 +355,30 @@ app.get('/product/sku/:sku', async (req, res) => {
         }
     }
 
-    res.render('product', { 
-        title: product ? product.name : 'Product Not Found',
+    const pageTitle = product ? product.name : 'Product Not Found';
+    const renderData = {
         product: product,
         error: error,
         script: '/js/product-detail.js',
         searchParams: searchQueryParams,
         initialDocContent: initialDocContent,
         initialDocTitle: initialDocTitle,
-        initialDocId: requestedDocId
-    });
+        initialDocId: requestedDocId,
+        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
+        fromSearchPage: fromSearchPage
+    };
+
+    if (req.get('X-Request-Partial') === 'true') {
+        res.set('X-Page-Title', pageTitle);
+        const partialData = { ...renderData };
+        delete partialData.script;
+        res.render('partials/product-main', partialData);
+    } else {
+        res.render('product', { 
+            title: pageTitle, 
+            ...renderData 
+        });
+    }
 });
 
 // Document content API endpoint
