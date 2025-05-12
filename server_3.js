@@ -206,8 +206,6 @@ Keywords: ${keywordQuery}`
                 products = await cursor.toArray();
                 console.log(`find returned ${products.length} results.`);
             }
-            products = await cursor.toArray();
-            console.log(`Fetched ${products.length} products.`);
         } catch (e) {
             console.error("Error fetching products:", e);
             error = "Could not retrieve products.";
