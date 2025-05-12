@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= typeof title !== 'undefined' ? title : 'Kinetic Constructs' %></title>
     <link rel="stylesheet" href="/css/style.css">
-    <% if (typeof productAssistantUrl !== 'undefined' && productAssistantUrl) { %>
-    <link rel="stylesheet" href="/css/chatbot-widget.css">
-    <% } %>
 </head>
 <body>
     <%- include('partials/header') %>
@@ -254,15 +251,8 @@
 
     <%- include('partials/footer') %>
 
-    <script src="/js/search.js"></script>
-    <% if (typeof productAssistantUrl !== 'undefined' && productAssistantUrl) { %>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <%- include('partials/chatbot-widget') %>
 
-    <script>
-        const productAssistantUrl = '<%= productAssistantUrl %>';
-    </script>
-    <script src="/js/chatbot-widget.js"></script>
-    <% } %>
+    <script src="/js/search.js"></script>
 </body>
 </html> 
