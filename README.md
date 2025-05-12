@@ -411,151 +411,83 @@ Stop the server (Ctrl+C).
 
 ### Iteration 4: Simplify with Langflow!
 
-Implementing the search logic directly in Node.js is effective, but Langflow provides a visual, low-code/no-code way to build, manage, test, and deploy these AI flows as API endpoints. This separates the AI logic from the main application code, making both easier to maintain and update.
+In this iteration, we take hybrid search to the next level by offloading the candidate generation (finding relevant product SKUs) to a Langflow flow. Instead of returning full product details, Langflow returns a list of SKUs based on the user's query. Our Node.js application (`server_4.js`) then combines these SKUs with any sidebar filters (category, tags) and queries Astra DB for the final product details.
 
 **How it Works:**
-*   We visually build the hybrid search logic in Langflow using its drag-and-drop interface and Astra DB components.
-*   Langflow hosts this flow and provides a REST API endpoint.
-*   Our Node.js application (which you will create as `server_langflow.js`) simply calls this Langflow API endpoint with the user's query and displays the results returned by the flow.
+- The Langflow flow interprets the user's query using an LLM, plans the search, and retrieves relevant products from Astra DB.
+- The flow outputs a newline-separated list of SKUs, each line prefixed with `Text: `.
+- `server_4.js` calls the Langflow API, parses the SKUs, and queries Astra DB for those SKUs, applying any additional filters.
+- The UI displays the final product results.
 
-**Steps:**
+**Langflow Flow Overview:**
 
-1.  **Start Langflow:**
-    Ensure Langflow is running. In your Codespace terminal:
-    ```bash
-    langflow run --env-file .env
-    ```
-    Open Langflow in your browser using the URL provided in the `PORTS` tab (likely port 7860).
+![Langflow SKU Retrieval Flow](./docs/images/langflow-server-4-hybrid-search.png)
 
-    ![Langflow UI in Browser](./docs/images/langflow-ui-loading.png)
+- **Chat Input**: Receives the user's search query.
+- **Prompt**: Provides context for the LLM to interpret the query.
+- **OpenAI**: Uses GPT-4o to generate a search plan.
+- **Structured Output**: Ensures the LLM output is in a consistent, structured format.
+- **Parser**: Converts the structured output into a DataFrame.
+- **Astra DB**: Uses the DataFrame to search the `products` collection.
+- **Parser**: Formats the search results as a list of SKUs, each line as `Text: {sku}`.
+- **Chat Output**: Returns the formatted SKUs to the API.
 
-2.  **Build the Hybrid Search Flow:**
-    *   Inside Langflow, click "New Project" or navigate to create a new flow.
-    *   **Add Components:** From the sidebar, find and drag these components onto the canvas:
-        *   `Utilities` -> `TextInput`: This will be our query input. Click the component and rename its `Name` field (under Code) to `query_text` (this defines the input field for the API).
-        *   `Retrievers` -> `AstraDBRetriever`: This component handles the Astra DB interaction.
-        *   `Outputs` -> `ChatOutput`: To visualize the results within Langflow.
-    *   **Configure `AstraDBRetriever`:**
-        *   **API Endpoint:** Paste your Astra DB API Endpoint.
-        *   **Token:** Paste your Astra DB Application Token (`AstraCS:...`).
-        *   **Keyspace:** Enter `default_keyspace` (or your keyspace name if different).
-        *   **Collection Name:** Enter `products` (or your collection name).
-        *   **Embedding:** Select `OpenAIEmbeddings`.
-        *   **OpenAI API Key:** Langflow should automatically pick this up from your `.env` file (as it's running in the same environment). If not, you might need to configure it here or as a Langflow global variable.
-        *   **Search Type:** Select **`Hybrid`**.
-        *   **OpenAI Embedding Model Name:** Set this to `text-embedding-ada-002` (or the model you configured in Astra).
-        *   **Astra DB OpenAI Key Name:** Enter the value of your `ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME` from your `.env` file (e.g., `WorkshopOpenAIKey`). This tells the retriever which Astra DB credential to use.
-    *   **Connect Components:** Drag a connection from the output handle of `TextInput` to the `Input Value` input handle of `AstraDBRetriever`. Drag a connection from the output handle of `AstraDBRetriever` to the input handle of `ChatOutput`.
-    *   **Save:** Click the Save icon and give your flow a name (e.g., "Hybrid Product Search").
+**Key Configuration:**
+- The final output from Langflow must be a string with each SKU on a new line, each line starting with `Text: ` (e.g., `Text: KCON-LLM-001`).
 
-    ![Langflow Hybrid Search Flow Diagram](./docs/images/langflow-hybrid-search-flow.png)
+**How `server_4.js` Integrates:**
 
-3.  **Get the API Endpoint:**
-    *   With your flow open, click the API button (usually looks like `<>`) in the Langflow toolbar.
-    *   A modal will appear showing example `curl` commands and Python snippets. Note the **endpoint URL** (it includes a unique Flow ID) and the expected **JSON input structure** (it should use the `input_value` key matching your `TextInput` name).
-
-    ![Langflow API Endpoint Modal](./docs/images/langflow-api-modal.png)
-
-4.  **Implement `server_langflow.js` (Manual Step for You):**
-    Now, you'll create `server_langflow.js`. The easiest way is to copy `server_2.js` and modify the `/search` route handler. Instead of calling `productCollection.findAndRerank`, you'll use `fetch` (or another HTTP client like `axios`) to make a POST request to the Langflow API endpoint you noted.
-
-    **Conceptual Code Snippet (to adapt for `server_langflow.js`):**
-    ```javascript
-    // Example using fetch (or axios) in server_langflow.js /search route
-    import fetch from 'node-fetch'; // Add 'node-fetch' to package.json if needed, or use built-in fetch
-
-    async function searchWithLangflow(query) {
-      // IMPORTANT: Replace with YOUR actual Langflow URL and Flow ID from the Langflow UI
-      const langflowApiUrl = 'http://127.0.0.1:7860/api/v1/run/YOUR_FLOW_ID'; 
-
-      // Match the 'Name' field of the TextInput component in your Langflow flow
-      const requestBody = {
-        input_value: query, 
-        stream: false, // Get the full result at once
-        // output_type: "chat" // Adjust based on your output component if needed
-      };
-
-      console.log(`Calling Langflow API: ${langflowApiUrl} with query: ${query}`);
-
-      try {
-        const response = await fetch(langflowApiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (!response.ok) {
-          const errorBody = await response.text();
-          throw new Error(`Langflow API Error (${response.status}): ${errorBody}`);
-        }
-
-        const result = await response.json();
-        console.log("Raw Langflow Result:", JSON.stringify(result, null, 2));
-
-        // --- Process the Langflow Result ---
-        // This is CRITICAL and depends heavily on the exact structure Langflow returns.
-        // You MUST inspect the "Raw Langflow Result" logged above to figure out
-        // how to extract the product documents. It might be nested deeply.
-        // Example *GUESS* (likely needs adjustment):
-        let products = [];
-        if (result?.outputs?.[0]?.outputs?.[0]?.results?.documents) {
-            // Assuming the retriever output contains a 'documents' list
-             products = result.outputs[0].outputs[0].results.documents.map(doc => doc.metadata); // Extract metadata if product data is there
-             console.log(`Extracted ${products.length} products from Langflow response.`);
-        } else if (result?.outputs?.[0]?.outputs?.[0]?.results?.data?.documents) { // Alternative path seen in some Langflow versions
-             products = result.outputs[0].outputs[0].results.data.documents.map(doc => doc.metadata);
-             console.log(`Extracted ${products.length} products from Langflow response (alternative path).`);
-        } else if (Array.isArray(result?.outputs?.[0]?.outputs?.[0]?.results)) { // If results is directly an array of docs
-            products = result.outputs[0].outputs[0].results.map(doc => doc.metadata || doc); // Check if docs have metadata
-             console.log(`Extracted ${products.length} products from Langflow response (direct array).`);
-        }
-        else {
-            console.warn("Could not find expected product data in Langflow response structure. Check the 'Raw Langflow Result' log.");
-            // Attempt to extract from a more generic path if possible, or return empty
-             const messageContent = result?.outputs?.[0]?.outputs?.[0]?.results?.message?.message;
-             if (typeof messageContent === 'string') {
-                try {
-                    const parsedMessage = JSON.parse(messageContent);
-                    if (Array.isArray(parsedMessage)) {
-                        products = parsedMessage; // Assuming the string itself was a JSON array of products
-                    }
-                } catch (e) { /* ignore parse error */ }
-             }
-        }
-        return products;
-        // --- End Processing ---
-
-      } catch (error) {
-        console.error("Error calling Langflow API:", error);
-        return [];
-      }
+```javascript
+// server_4.js - queryLangflowRAG function (simplified)
+async function queryLangflowRAG(userQuery) {
+    const langflowApiUrl = process.env.LANGFLOW_RAG_API_ENDPOINT;
+    const requestBody = { input_value: userQuery };
+    const response = await fetch(langflowApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+    });
+    const result = await response.json();
+    let skus = [];
+    if (result.outputs && result.outputs[0]?.outputs[0]?.results?.message?.text) {
+        const skuText = result.outputs[0].outputs[0].results.message.text;
+        skus = skuText.trim().split('\n')
+            .map(line => {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('Text: ')) {
+                    return trimmedLine.substring(6).trim();
+                }
+                return trimmedLine;
+            })
+            .filter(s => s && s !== 'Text:');
     }
+    return { skus, error: null };
+}
 
-    // In your /search route handler:
-    // ... (get queryText, requestedFamily, etc.) ...
-    if (queryText) { // Only use Langflow if there's a text query
-        products = await searchWithLangflow(queryText);
-        // NOTE: Filtering by family/tags must now be handled *within* the Langflow flow
-        // itself (e.g., by adding filter inputs to the flow and connecting them
-        // to the AstraDBRetriever's filter parameter) or applied *after* getting results from Langflow.
-        // This current example only sends the text query and doesn't re-apply filters from UI.
+// In the /search route:
+if (queryText) {
+    const langflowResult = await queryLangflowRAG(queryText);
+    if (langflowResult.skus && langflowResult.skus.length > 0) {
+        filterConditions.push({ sku: { $in: langflowResult.skus } });
     } else {
-        // Fallback to direct DB call for non-text search (filtering only)
-        const cursor = await productCollection.find(filter, {});
-        products = await cursor.toArray();
+        finalFilter = { sku: '__LANGFLOW_RETURNED_NO_SKUS__' };
     }
-    // ... (rest of rendering logic) ...
-    ```
-    *   **Crucial:** You *must* inspect the actual JSON response from your Langflow API call (use `console.log`) to figure out how to correctly parse the product results. The example above has been updated with more guessing paths but still requires verification.
-    *   You'll also need to decide how to handle filtering (category/tags) – either add inputs to your Langflow flow (connecting to the `AstraDBRetriever`'s `Filter` parameter) or filter the results *after* they come back from Langflow. The snippet above highlights this.
+}
+// ...combine with sidebar filters and query Astra DB...
+```
 
-5.  **Try it Out:**
-    *   Make sure Langflow is still running.
-    *   Create and save your `server_langflow.js` file based on the snippet and `server_2.js` (or any other server file as a base).
-    *   Run the final iteration: `node server_langflow.js`.
-    *   Open the application and perform searches. Debug the Langflow API call and result parsing until you see the search results correctly populated from your Langflow flow!
+**Try it Out:**
+- Make sure your Langflow flow is running and the endpoint is set in `.env`.
+- Run `server_4.js`:
+  ```bash
+  node server_4.js
+  ```
+- Use the main search box. The query is sent to Langflow, SKUs are returned, and the server fetches those products from Astra DB, applying any sidebar filters.
+- Check the logs to see the SKUs and the final query.
 
-    ![Application with Langflow Search Results (server_langflow.js)](./docs/images/app-langflow-results.png)
+---
+
+**This approach demonstrates a powerful pattern: using Langflow for AI-driven candidate generation (SKU retrieval) and the application server for final data fetching and business logic.**
 
 ## 🎉 Workshop Complete!
 
