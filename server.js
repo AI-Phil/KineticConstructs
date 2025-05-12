@@ -228,6 +228,8 @@ app.get('/product/:productId', async (req, res) => {
     const productId = req.params.productId;
     const searchQueryParams = req.query;
     const requestedDocId = req.query.doc;
+    const referer = req.get('referer') || '';
+    const fromSearchPage = referer.includes('/search');
 
     let product = null;
     let initialDocContent = null;
@@ -274,12 +276,13 @@ app.get('/product/:productId', async (req, res) => {
     const renderData = {
         product: product,
         error: error,
-        script: '/js/product-detail.js', // Script might still be needed for full page load context
+        script: '/js/product-detail.js',
         searchParams: searchQueryParams,
         initialDocContent: initialDocContent,
         initialDocTitle: initialDocTitle,
         initialDocId: requestedDocId,
-        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || ''
+        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
+        fromSearchPage: fromSearchPage
     };
 
     if (req.get('X-Request-Partial') === 'true') {
@@ -302,6 +305,8 @@ app.get('/product/sku/:sku', async (req, res) => {
     const sku = req.params.sku;
     const searchQueryParams = req.query;
     const requestedDocId = req.query.doc;
+    const referer = req.get('referer') || '';
+    const fromSearchPage = referer.includes('/search');
 
     let product = null;
     let initialDocContent = null;
@@ -353,7 +358,8 @@ app.get('/product/sku/:sku', async (req, res) => {
         initialDocContent: initialDocContent,
         initialDocTitle: initialDocTitle,
         initialDocId: requestedDocId,
-        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || ''
+        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
+        fromSearchPage: fromSearchPage
     };
 
     if (req.get('X-Request-Partial') === 'true') {

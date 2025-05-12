@@ -4,11 +4,17 @@
     <div class="container product-detail-container">
         <%# Left Column: Product Info %>
         <div class="product-detail-info">
-            <%# Moved Back link to top, uses searchParams %>
+            <%# Only show Back link if there is a search context or fromSearchPage %>
             <% 
-                const backLinkParams = new URLSearchParams(searchParams || {}); 
+                const hasSearchContext = searchParams && (
+                    searchParams.family || searchParams.type || 
+                    (Array.isArray(searchParams.tag) ? searchParams.tag.length > 0 : searchParams.tag) ||
+                    searchParams.q || searchParams.keyword
+                );
             %>
-            <a href="/search?<%= backLinkParams.toString() %>" class="back-to-search">&larr; Back to Search Results</a>
+            <% if (hasSearchContext || fromSearchPage) { %>
+                <a href="/search<%= hasSearchContext ? ('?' + new URLSearchParams(searchParams).toString()) : '' %>" class="back-to-search">&larr; Back to Search Results</a>
+            <% } %>
 
             <h1><%= product.name %></h1>
             <% if (product.image_url) { %>

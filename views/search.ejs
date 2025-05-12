@@ -229,13 +229,19 @@
                                                     const tagParams = new URLSearchParams(queryParams || '');
                                                     tagParams.set('tag', tag);
                                                 %>
-                                                <a href="/search?<%= tagParams.toString() %>" class="tag-link"><%= tag %></a>
+                                                <a href="/search?<%= tagParams.toString() %>" class="tag-link"><span class="tag"><%= tag %></span></a>
                                             <% }); %>
                                             <% if (product.tags.length > 5) { %>
                                                 <span class="more-tags">+<%= product.tags.length - 5 %> more</span>
                                             <% } %>
                                         </div>
                                     <% } %>
+                                    <div class="product-meta">
+                                        <dl>
+                                            <dt>Family:</dt><dd><%= product.family %></dd>
+                                            <dt>Type:</dt><dd><%= product.product_type %></dd>
+                                        </dl>
+                                    </div>
                             </div>
                         <% }); %>
                     </div>
@@ -248,6 +254,7 @@
 
     <%- include('partials/footer') %>
 
+    <script src="/js/search.js"></script>
     <% if (typeof productAssistantUrl !== 'undefined' && productAssistantUrl) { %>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <%- include('partials/chatbot-widget') %>
