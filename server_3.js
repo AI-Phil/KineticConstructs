@@ -242,7 +242,7 @@ Keywords: ${keywordQuery}`
         queryParams: req.query,
         productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
         semanticSearchEnabled: true,
-        keywordSearchEnabled: false
+        keywordSearchEnabled: true
     });
 });
 
