@@ -101,16 +101,11 @@ async function initializeDbAndData() {
 }
 
 async function queryLangflowRAG(userQuery) {
-    const langflowApiUrl = LANGFLOW_RAG_API_ENDPOINT; // Use the environment variable
-
-    const requestBody = {
-        input_value: userQuery,
-    };
-
-    console.log(`Calling Langflow RAG API: ${langflowApiUrl} with body: ${JSON.stringify(requestBody)}`);
+    const langflowApiUrl = LANGFLOW_RAG_API_ENDPOINT;
+    const requestBody = { input_value: userQuery };
+    console.log(`Calling Langflow RAG API (SKU mode - new format): ${langflowApiUrl} with body: ${JSON.stringify(requestBody)}`);
 
     try {
-        // Native fetch is available in Node.js v20+
         const response = await fetch(langflowApiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -120,13 +115,13 @@ async function queryLangflowRAG(userQuery) {
         if (!response.ok) {
             const errorBody = await response.text();
             console.error(`Langflow API Error (${response.status}): ${errorBody}`);
-            return { error: `Langflow API Error: ${response.status} - ${errorBody}`, answer: null };
+            return { skus: [], error: `Langflow API Error: ${response.status} - ${errorBody}` };
         }
 
         const result = await response.json();
-        console.log("Raw Langflow RAG Result:", JSON.stringify(result, null, 2));
+        // console.log("Raw Langflow RAG Result (SKU mode - new format):", JSON.stringify(result, null, 2));
 
-        let answer = "Sorry, I couldn't retrieve an answer at this moment.";
+        let skus = [];
         let error = null;
 
         if (result.outputs && result.outputs.length > 0 &&
@@ -134,17 +129,32 @@ async function queryLangflowRAG(userQuery) {
             result.outputs[0].outputs[0].results &&
             result.outputs[0].outputs[0].results.message &&
             typeof result.outputs[0].outputs[0].results.message.text === 'string') {
-          answer = result.outputs[0].outputs[0].results.message.text;
+            
+            const skuText = result.outputs[0].outputs[0].results.message.text;
+            skus = skuText.trim().split('\n')
+                .map(line => {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('Text: ')) {
+                        return trimmedLine.substring(6).trim(); // Remove "Text: " (6 chars) and trim again
+                    }
+                    // If a line doesn't start with "Text: ", but is not empty, keep it (e.g. if some SKUs don't have the prefix)
+                    // However, based on curl, all relevant lines have it. This is a small safeguard.
+                    return trimmedLine; 
+                })
+                .filter(s => s && s !== 'Text:'); // Filter out empty strings and lines that were just "Text:"
+
+            if (skus.length === 0 && skuText.trim() !== '') {
+                console.warn('Langflow returned SKU text but parsing resulted in zero SKUs (new format):', skuText);
+            }
+            console.log('SKUs received from Langflow (new format):', skus);
         } else {
-          console.warn("Could not find expected answer in the primary path of Langflow RAG response structure. Please check the raw log.");
-          error = "Failed to parse answer from Langflow response.";
+            console.warn("Could not find expected SKU text in Langflow RAG response (new format).");
+            error = "No SKU data found in Langflow response.";
         }
-
-        return { answer, error };
-
+        return { skus, error };
     } catch (e) {
-        console.error("Error calling or parsing Langflow API response:", e);
-        return { error: "Error processing the request with Langflow.", answer: null };
+        console.error("Error calling or parsing Langflow API response (SKU mode - new format):", e);
+        return { skus: [], error: "Error processing the Langflow SKU request." };
     }
 }
 
@@ -167,64 +177,96 @@ app.get('/search', async (req, res) => {
     let requestedTags = req.query.tag || [];
     if (typeof requestedTags === 'string') requestedTags = [requestedTags];
 
-    let displayAnswer = null;
     let productsToDisplay = [];
     let searchError = null;
+    let displayAnswer = null; // Not used for chat-like response anymore
 
+    const filterConditions = []; // For category and tags
+    if (requestedFamily) {
+        const familyTypeFilter = { family: requestedFamily };
+        if (requestedType) familyTypeFilter.product_type = requestedType;
+        filterConditions.push(familyTypeFilter);
+    }
+    if (requestedTags.length > 0) {
+        filterConditions.push({ tags: { $all: requestedTags } });
+    }
+
+    let langflowSkus = null;
     if (queryText) {
-        // If there's a search query, call Langflow RAG
-        console.log(`Performing Langflow RAG search for: "${queryText}"`);
+        console.log(`Querying Langflow for SKUs with: "${queryText}"`);
         const langflowResult = await queryLangflowRAG(queryText);
-        displayAnswer = langflowResult.answer;
-        searchError = langflowResult.error;
-        // productsToDisplay will remain empty here, focusing on RAG answer.
-        // Filters from UI (family, type, tags) are not applied to Langflow RAG query in this version.
-    } else {
-        // No search query, so perform filtering like server.js
-        console.log("No search query (q), performing filter-based product search.");
-        const filterConditions = [];
-        if (requestedFamily) {
-            const familyTypeFilter = { family: requestedFamily };
-            if (requestedType) familyTypeFilter.product_type = requestedType;
-            filterConditions.push(familyTypeFilter);
-        }
-        if (requestedTags.length > 0) {
-            filterConditions.push({ tags: { $all: requestedTags } });
-        }
-        let filter = {};
-        if (filterConditions.length > 1) filter = { $and: filterConditions };
-        else if (filterConditions.length === 1) filter = filterConditions[0];
-
-        if (productCollection) {
-            try {
-                console.log(`Querying products with filter: ${JSON.stringify(filter)}`);
-                const cursor = await productCollection.find(filter, {}); // Empty options for basic filter
-                productsToDisplay = await cursor.toArray();
-                console.log(`Filter-based search returned ${productsToDisplay.length} products.`);
-            } catch (dbError) {
-                console.error("Error fetching products with filter:", dbError);
-                searchError = "Error retrieving products based on filters.";
-            }
+        if (langflowResult.error) {
+            searchError = langflowResult.error;
+        } else if (langflowResult.skus && langflowResult.skus.length > 0) {
+            langflowSkus = langflowResult.skus;
+            // Add SKUs to filterConditions. We'll use $and later if other filters exist.
+            filterConditions.push({ sku: { $in: langflowSkus } }); // ASSUMING 'sku' field in DB
         } else {
-            searchError = "Database product collection not available for filtering.";
+            // Langflow returned no SKUs for the query, so effectively no products will match if queryText was the main criteria
+            console.log('Langflow returned no SKUs for the query.');
+            // To ensure no results if Langflow is the driver and returns no SKUs, we can add a condition that won't match anything.
+            // However, if there are other active filters, the user might expect those to work independently.
+            // For now, if langflowSkus is null/empty, and other filters are also empty, it will show all products.
+            // If langflowSkus is empty but other filters exist, it will respect other filters.
+            // If queryText was given AND Langflow returned no SKUs, this will result in products based on *only other filters*.
+            // To force no results if queryText exists and Langflow finds no SKUs:
+            // filterConditions.push({ _id: '__NEVER_MATCH_DUE_TO_LANGFLOW_EMPTY_SKUS__' });
         }
     }
 
-    const dynamicTagCounts = new Map();
-    productsToDisplay.forEach(product => {
-        if (product.tags && Array.isArray(product.tags)) {
-            product.tags.forEach(tag => dynamicTagCounts.set(tag, (dynamicTagCounts.get(tag) || 0) + 1));
+    // Build the final filter
+    let finalFilter = {};
+    if (filterConditions.length > 1) {
+        finalFilter = { $and: filterConditions };
+    } else if (filterConditions.length === 1) {
+        finalFilter = filterConditions[0];
+    } else if (queryText && (!langflowSkus || langflowSkus.length === 0)) {
+        // If there was a query, but Langflow returned no SKUs, we want no results based on the query.
+        // We effectively make the query result in no products if the search query was the main intent.
+        // This prevents showing all products if Langflow search yields nothing.
+        finalFilter = { sku: '__LANGFLOW_RETURNED_NO_SKUS__' }; // This will match nothing
+    }
+    // If no queryText and no filters, finalFilter remains {} which means find all.
+
+    if (productCollection) {
+        try {
+            console.log(`Querying products with final filter: ${JSON.stringify(finalFilter)}`);
+            const cursor = await productCollection.find(finalFilter, { limit: 75 }); // Limit results
+            productsToDisplay = await cursor.toArray();
+            console.log(`Database query returned ${productsToDisplay.length} products.`);
+            if (queryText && langflowSkus && langflowSkus.length > 0 && productsToDisplay.length === 0) {
+                console.warn('Langflow provided SKUs, but no products matched them in the database with current filters.');
+            }
+        } catch (dbError) {
+            console.error("Error fetching products from database:", dbError);
+            searchError = "Error retrieving products from database.";
+            productsToDisplay = []; // Clear products on error
         }
-    });
+    } else {
+        searchError = "Database product collection not available.";
+    }
+
+    const dynamicTagCounts = new Map();
+    if (Array.isArray(productsToDisplay)) {
+        productsToDisplay.forEach(product => {
+            if (product && product.tags && Array.isArray(product.tags)) {
+                product.tags.forEach(tag => dynamicTagCounts.set(tag, (dynamicTagCounts.get(tag) || 0) + 1));
+            }
+        });
+    }
     const displayTags = tagsByFrequency.map(tagInfo => ({
         tag: tagInfo.tag,
+        count: tagInfo.count,
         dynamicCount: dynamicTagCounts.get(tagInfo.tag) || 0
-    }));
+    })).sort((a, b) => {
+        if (b.dynamicCount !== a.dynamicCount) return b.dynamicCount - a.dynamicCount;
+        return a.tag.localeCompare(b.tag);
+    });
 
     res.render('search', {
-        title: 'Search Products',
+        title: 'Search Results',
         products: productsToDisplay,
-        displayAnswer: displayAnswer,
+        displayAnswer: displayAnswer, // null
         error: searchError,
         hierarchy: productHierarchy,
         displayTags: displayTags,
@@ -232,7 +274,8 @@ app.get('/search', async (req, res) => {
         currentType: requestedType,
         currentTags: requestedTags,
         queryParams: req.query,
-        langflowRagMode: !!queryText // True if queryText exists (Langflow was called), false otherwise
+        semanticSearchEnabled: true,
+        langflowRagMode: false // SKUs from Langflow are used to filter DB, rendered normally
     });
 });
 

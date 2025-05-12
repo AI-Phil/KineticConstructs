@@ -139,16 +139,6 @@
                 <%# Button to toggle sidebar visibility on mobile %>
                 <button id="toggle-filters-btn" class="mobile-only-button">Show Filters</button>
                 
-                <%# Display Langflow Answer if available %>
-                <% if (locals.displayAnswer) { %>
-                    <div class="langflow-answer-box card shadow-sm mb-4">
-                        <div class="card-header bg-primary text-white">AI Assistant Result</div>
-                        <div class="card-body">
-                            <p class="card-text"><%- displayAnswer.replace(/\n/g, '<br>') %></p>
-                        </div>
-                    </div>
-                <% } %>
-
                 <%# Cleaner filter display area %>
                 <div class="filter-info">
                     <% 
