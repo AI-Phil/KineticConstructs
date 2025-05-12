@@ -5,60 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= typeof title !== 'undefined' ? title : 'Kinetic Constructs' %></title>
     <link rel="stylesheet" href="/css/style.css">
+    <% if (typeof productAssistantUrl !== 'undefined' && productAssistantUrl) { %>
+    <link rel="stylesheet" href="/css/chatbot-widget.css">
+    <% } %>
 </head>
 <body>
     <%- include('partials/header') %>
 
     <main>
-        <!-- Hero Section -->
-        <section class="hero" style="background-image: url('/images/hero-background.png');">
-            <div class="hero-content">
-                <h1>Kinetic Constructs</h1>
-                <h2>Building Tomorrow's Play.</h2>
-                <p>Inspiring creativity, problem-solving, and collaborative play through innovative, interactive, and educational toys.</p>
-                <a href="/search" class="btn btn-primary">Explore Our Kits</a>
-            </div>
-        </section>
-
-        <!-- Mission Section -->
-        <section class="mission-section section-padding">
-            <div class="content-container">
-                <h2>Our Mission</h2>
-                <p>To inspire creativity, problem-solving, and collaborative play through innovative, interactive, and educational toys that blend physical construction with digital integration. We focus on STEAM principles, high-quality materials, robust electronics, and engaging software experiences.</p>
-            </div>
-        </section>
-
-        <!-- Product Families Section -->
-        <section class="product-families-section section-padding bg-light">
-            <div class="content-container">
-                <h2>Discover Our Worlds of Play</h2>
-                <div class="families-grid">
-                    <div class="family-card">
-                        <h3>ConstructoBots</h3>
-                        <p>Buildable, programmable robots focusing on mechanics, electronics, and coding.</p>
-                    </div>
-                    <div class="family-card">
-                        <h3>LogicLeaps</h3>
-                        <p>Electronic learning kits centered on circuits, coding principles, and logic.</p>
-                    </div>
-                    <div class="family-card">
-                        <h3>ImagiWorlds</h3>
-                        <p>Interactive playsets blending physical structures with smart elements and AR features.</p>
-                    </div>
-                    <div class="family-card">
-                        <h3>KinetiKits</h3>
-                        <p>Advanced kinetic sets focused on complex mechanical motion and physics.</p>
-                    </div>
-                    <div class="family-card">
-                        <h3>CreatiSpark</h3>
-                        <p>Digital/Electronic creative tools like animation tablets and simple 3D printers.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
+        <%- include('partials/home-main') %>
     </main>
 
     <%- include('partials/footer') %>
+
+    <% if (typeof productAssistantUrl !== 'undefined' && productAssistantUrl) { %>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <%- include('partials/chatbot-widget') %>
+
+    <script>
+        const productAssistantUrl = '<%= productAssistantUrl %>';
+    </script>
+    <script src="/js/chatbot-widget.js"></script>
+    <% } %>
 </body>
 </html> 
