@@ -5,82 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= typeof title !== 'undefined' ? title : 'Kinetic Constructs' %></title>
     <link rel="stylesheet" href="/css/style.css">
+    <% if (typeof productAssistantUrl !== 'undefined' && productAssistantUrl) { %>
+    <link rel="stylesheet" href="/css/chatbot-widget.css">
+    <% } %>
 </head>
 <body>
     <%- include('partials/header') %>
 
     <main>
-        <% if (!product) { %>
-            <p>Product not found.</p>
-        <% } else { %>
-            <div class="container product-detail-container">
-                <%# Left Column: Product Info %>
-                <div class="product-detail-info">
-                    <%# Moved Back link to top, uses searchParams %>
-                    <% 
-                        const backLinkParams = new URLSearchParams(searchParams || {}); 
-                    %>
-                    <a href="/search?<%= backLinkParams.toString() %>" class="back-to-search">&larr; Back to Search Results</a>
-
-                    <h1><%= product.name %></h1>
-                    <% if (product.image_url) { %>
-                        <img src="<%= product.image_url %>" alt="<%= product.name %>" class="product-detail-image">
-                    <% } %>
-                    <p><%= product.description %></p>
-                    <p class="price">Price: <%= product.price?.currency %> <%= product.price?.amount %></p>
-                    
-                    <%# Attributes %>
-                    <% if (product.attributes && Object.keys(product.attributes).length > 0) { %>
-                    <div class="product-attributes">
-                        <h3>Attributes</h3>
-                        <ul>
-                            <% for (const [key, value] of Object.entries(product.attributes)) { %>
-                                <li><strong><%= key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) %>:</strong> <%= Array.isArray(value) ? value.join(', ') : value %></li>
-                            <% } %>
-                        </ul>
-                    </div>
-                    <% } %>
-
-                    <%# Documentation Links %>
-                    <% if (product.documentation && product.documentation.length > 0) { %>
-                    <div class="product-documentation-links">
-                        <h3>Documentation</h3>
-                        <ul>
-                            <% product.documentation.forEach(doc => { %>
-                                <li><a href="#" class="doc-link" data-doc-id="<%= doc.id %>"><%= doc.title %></a></li>
-                            <% }); %>
-                        </ul>
-                    </div>
-                    <% } %>
-                </div>
-
-                <%# Right Column: Doc Viewer %>
-                <div class="product-detail-doc-display" data-initial-doc-id="<%= typeof initialDocId !== 'undefined' ? initialDocId : '' %>">
-                    <%# Display initial doc title if available %>
-                    <h2 id="docViewerTitle"><%= typeof initialDocTitle !== 'undefined' && initialDocTitle ? initialDocTitle : 'Select a document' %></h2>
-                    <%# Display initial doc content if available, otherwise show placeholder %>
-                    <div id="docViewerContent">
-                        <% if (typeof initialDocContent !== 'undefined' && initialDocContent) { %>
-                            <%- initialDocContent %> <%# Use unescaped output for HTML %>
-                        <% } else { %>
-                            <p>Select a document from the list to view its content.</p>
-                        <% } %>
-                    </div>
-                </div>
-            </div>
-        <% } %>
-
-        <%# Image Modal Structure %>
-        <div id="imageModal" class="image-modal-overlay" style="display: none;">
-          <span class="image-modal-close-btn" id="imageModalCloseBtn">&times;</span>
-          <img class="image-modal-content" id="imageModalContent">
-          <div id="imageModalCaption"></div>
-        </div>
-
+        <%- include('partials/product-main', {
+            product: typeof product !== 'undefined' ? product : null,
+            error: typeof error !== 'undefined' ? error : null, // Pass error too, if product-main handles it
+            searchParams: typeof searchParams !== 'undefined' ? searchParams : {},
+            initialDocId: typeof initialDocId !== 'undefined' ? initialDocId : '',
+            initialDocTitle: typeof initialDocTitle !== 'undefined' ? initialDocTitle : '',
+            initialDocContent: typeof initialDocContent !== 'undefined' ? initialDocContent : ''
+        }) %>
     </main>
 
     <%- include('partials/footer') %>
 
     <script src="<%= script %>"></script> <%# Include script passed from route %>
+
+    <% if (typeof productAssistantUrl !== 'undefined' && productAssistantUrl) { %>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <%- include('partials/chatbot-widget') %>
+
+    <script>
+        const productAssistantUrl = '<%= productAssistantUrl %>';
+    </script>
+    <script src="/js/chatbot-widget.js"></script>
+    <% } %>
 </body>
 </html> 
