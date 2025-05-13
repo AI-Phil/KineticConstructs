@@ -1,3 +1,4 @@
+<% if (typeof productAssistantUrl !== 'undefined' && productAssistantUrl) { %>
 <%# Chatbot Interface %>
 <div id="chat-widget" class="chat-widget">
     <div class="chat-header">
@@ -21,13 +22,12 @@
     </svg>
 </button>
 
-<% if (typeof productAssistantUrl !== 'undefined' && productAssistantUrl) { %>
-    <link rel="stylesheet" href="/css/chatbot-widget.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- Chatbot widget HTML -->
-    <div id="chatbot-widget"></div>
-    <script>
-        const productAssistantUrl = '<%= productAssistantUrl %>';
-    </script>
-    <script src="/js/chatbot-widget.js"></script>
+<link rel="stylesheet" href="/css/chatbot-widget.css">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- Chatbot widget HTML -->
+<div id="chatbot-widget"></div>
+<script>
+    const productAssistantUrl = '<%= productAssistantUrl %>';
+</script>
+<script src="/js/chatbot-widget.js"></script>
 <% } %> 
