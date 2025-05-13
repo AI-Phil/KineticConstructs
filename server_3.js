@@ -14,13 +14,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Environment variables validation
-const { ASTRA_DB_API_ENDPOINT, ASTRA_DB_TOKEN, ASTRA_DB_COLLECTION } = process.env;
+const { ASTRA_DB_API_ENDPOINT, ASTRA_DB_TOKEN, ASTRA_DB_COLLECTION, LANGFLOW_PRODUCT_ASSISTANT_ENDPOINT } = process.env;
 
 if (!ASTRA_DB_API_ENDPOINT || !ASTRA_DB_TOKEN) {
     console.error("Error: ASTRA_DB_API_ENDPOINT and ASTRA_DB_TOKEN must be set in the .env file.");
     process.exit(1);
 }
 
+const productAssistantUrl = LANGFLOW_PRODUCT_ASSISTANT_ENDPOINT || '';
 const collectionName = ASTRA_DB_COLLECTION || 'products';
 
 let db;
@@ -48,7 +49,7 @@ async function initializeDbAndData() {
         });
         const initialProductItems = await productCursor.toArray();
         console.log(`Fetched ${initialProductItems.length} product items.`);
-        
+
         // Build product hierarchy and tag frequency map
         console.log('Building hierarchy and counting tags from DB data...');
         const hierarchy = {};
@@ -118,7 +119,7 @@ async function initializeDbAndData() {
         documentCollection = null;
         productHierarchy = {};
         tagsByFrequency = [];
-        docTitleMap.clear(); 
+        docTitleMap.clear();
     }
     console.log("Initialization complete.");
 }
@@ -134,7 +135,7 @@ app.use(express.json());
 app.get('/', (req, res) => {
     const renderData = {
         title: 'Welcome',
-        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || ''
+        productAssistantUrl: productAssistantUrl
     };
     if (req.get('X-Request-Partial') === 'true') {
         res.set('X-Page-Title', renderData.title);
@@ -195,7 +196,7 @@ Keywords: ${keywordQuery}`
     } else {
         try {
             console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
-            
+
             if (semanticQuery && keywordQuery) {
                 const cursor = await productCollection.findAndRerank(filter, options);
                 const rankedResults = await cursor.toArray();
@@ -238,7 +239,7 @@ Keywords: ${keywordQuery}`
         currentType: requestedType,
         currentTags: requestedTags,
         queryParams: req.query,
-        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
+        productAssistantUrl: productAssistantUrl,
         semanticSearchEnabled: true,
         keywordSearchEnabled: true
     });
@@ -263,14 +264,14 @@ app.get('/product/:productId', async (req, res) => {
         try {
             console.log(`Fetching product with _id: ${productId}`);
             product = await productCollection.findOne({ _id: productId });
-            
+
             if (product) {
                 // Attach document metadata to product
                 product.documentation = [];
                 if (product.documentation_ids && Array.isArray(product.documentation_ids)) {
                     product.documentation = product.documentation_ids
                         .map(id => ({ id: id, title: docTitleMap.get(id) || id }))
-                        .sort((a, b) => a.title.localeCompare(b.title)); 
+                        .sort((a, b) => a.title.localeCompare(b.title));
                 }
 
                 // Load initial document if specified
@@ -287,7 +288,7 @@ app.get('/product/:productId', async (req, res) => {
             } else {
                 error = "Product not found.";
             }
-        } catch(e) {
+        } catch (e) {
             console.error(`Error fetching product ${productId} or document ${requestedDocId}:`, e);
             error = "Could not retrieve product details or document.";
         }
@@ -302,7 +303,7 @@ app.get('/product/:productId', async (req, res) => {
         initialDocContent: initialDocContent,
         initialDocTitle: initialDocTitle,
         initialDocId: requestedDocId,
-        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
+        productAssistantUrl: productAssistantUrl,
         fromSearchPage: fromSearchPage
     };
 
@@ -314,9 +315,9 @@ app.get('/product/:productId', async (req, res) => {
         // The 'title' variable for the <title> tag is handled by X-Page-Title header for partials
         res.render('partials/product-main', partialData);
     } else {
-        res.render('product', { 
-            title: pageTitle, 
-            ...renderData 
+        res.render('product', {
+            title: pageTitle,
+            ...renderData
         });
     }
 });
@@ -340,14 +341,14 @@ app.get('/product/sku/:sku', async (req, res) => {
         try {
             console.log(`Fetching product with SKU: ${sku}`);
             product = await productCollection.findOne({ sku: sku });
-            
+
             if (product) {
                 // Attach document metadata to product
                 product.documentation = [];
                 if (product.documentation_ids && Array.isArray(product.documentation_ids)) {
                     product.documentation = product.documentation_ids
                         .map(id => ({ id: id, title: docTitleMap.get(id) || id }))
-                        .sort((a, b) => a.title.localeCompare(b.title)); 
+                        .sort((a, b) => a.title.localeCompare(b.title));
                 }
 
                 // Load initial document if specified
@@ -379,7 +380,7 @@ app.get('/product/sku/:sku', async (req, res) => {
         initialDocContent: initialDocContent,
         initialDocTitle: initialDocTitle,
         initialDocId: requestedDocId,
-        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
+        productAssistantUrl: productAssistantUrl,
         fromSearchPage: fromSearchPage
     };
 
@@ -389,9 +390,9 @@ app.get('/product/sku/:sku', async (req, res) => {
         delete partialData.script;
         res.render('partials/product-main', partialData);
     } else {
-        res.render('product', { 
-            title: pageTitle, 
-            ...renderData 
+        res.render('product', {
+            title: pageTitle,
+            ...renderData
         });
     }
 });
