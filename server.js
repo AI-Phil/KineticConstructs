@@ -14,13 +14,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Environment variables validation
-const { ASTRA_DB_API_ENDPOINT, ASTRA_DB_TOKEN, ASTRA_DB_COLLECTION } = process.env;
+const { ASTRA_DB_API_ENDPOINT, ASTRA_DB_TOKEN, ASTRA_DB_COLLECTION, LANGFLOW_PRODUCT_ASSISTANT_ENDPOINT } = process.env;
 
 if (!ASTRA_DB_API_ENDPOINT || !ASTRA_DB_TOKEN) {
     console.error("Error: ASTRA_DB_API_ENDPOINT and ASTRA_DB_TOKEN must be set in the .env file.");
     process.exit(1);
 }
 
+const productAssistantUrl = LANGFLOW_PRODUCT_ASSISTANT_ENDPOINT || '';
 const collectionName = ASTRA_DB_COLLECTION || 'products';
 
 let db;
@@ -134,7 +135,7 @@ app.use(express.json());
 app.get('/', (req, res) => {
     const renderData = {
         title: 'Welcome',
-        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || ''
+        productAssistantUrl: productAssistantUrl
     };
     if (req.get('X-Request-Partial') === 'true') {
         res.set('X-Page-Title', renderData.title);
@@ -217,7 +218,7 @@ app.get('/search', async (req, res) => {
         currentType: requestedType,
         currentTags: requestedTags,
         queryParams: req.query,
-        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
+        productAssistantUrl: productAssistantUrl,
         semanticSearchEnabled: false,
         keywordSearchEnabled: false
     });
@@ -281,7 +282,7 @@ app.get('/product/:productId', async (req, res) => {
         initialDocContent: initialDocContent,
         initialDocTitle: initialDocTitle,
         initialDocId: requestedDocId,
-        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
+        productAssistantUrl: productAssistantUrl,
         fromSearchPage: fromSearchPage
     };
 
@@ -358,7 +359,7 @@ app.get('/product/sku/:sku', async (req, res) => {
         initialDocContent: initialDocContent,
         initialDocTitle: initialDocTitle,
         initialDocId: requestedDocId,
-        productAssistantUrl: process.env.PRODUCT_ASSISTANT_URL || '',
+        productAssistantUrl: productAssistantUrl,
         fromSearchPage: fromSearchPage
     };
 
