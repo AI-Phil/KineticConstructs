@@ -1,11 +1,11 @@
 // This file now handles interactions specifically on the /search page
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     setupSearchPageInteractions();
 });
 
 // Listen for content updates via background navigation
-document.addEventListener('mainContentReloaded', function(event) {
+document.addEventListener('mainContentReloaded', function (event) {
     setupSearchPageInteractions();
 });
 
@@ -13,7 +13,7 @@ function setupSearchPageInteractions() {
     // --- Semantic Search and Keyword Search Interaction ---
     const semanticSearchInput = document.querySelector('.semantic-search input');
     const keywordSearchInput = document.querySelector('.keyword-search input');
-    
+
     if (semanticSearchInput && keywordSearchInput) {
         // Function to update keyword search input state
         const updateKeywordSearchState = () => {
@@ -40,7 +40,7 @@ function setupSearchPageInteractions() {
         tagSearchInput.addEventListener('input', (event) => {
             const searchTerm = event.target.value.toLowerCase();
             const listItems = availableTagsList.querySelectorAll('li');
-            
+
             listItems.forEach(li => {
                 const tagName = li.getAttribute('data-tag-name') || '';
                 if (tagName.includes(searchTerm)) {
@@ -58,17 +58,17 @@ function setupSearchPageInteractions() {
             const dropbtn = event.target.closest('.dropbtn');
             if (dropbtn) {
                 event.preventDefault(); // Prevent link navigation
-                
+
                 const dropdown = dropbtn.closest('.nav-item.dropdown');
                 if (!dropdown) return;
 
                 // Toggle active class on the clicked dropdown
                 const currentlyActive = dropdown.classList.contains('active');
-                
+
                 // Close all other dropdowns first
                 hierarchyFilter.querySelectorAll('.nav-item.dropdown.active').forEach(activeDropdown => {
                     if (activeDropdown !== dropdown) { // Don't close the one we just clicked if it was already open
-                         activeDropdown.classList.remove('active');
+                        activeDropdown.classList.remove('active');
                     }
                 });
 
@@ -89,7 +89,7 @@ function setupSearchPageInteractions() {
         productGrid.addEventListener('click', (event) => {
             // Find the closest parent product card
             const card = event.target.closest('.product-card.product-card-link');
-            
+
             // Check if the click originated from within a tag link inside the card
             const isClickOnTagLink = event.target.closest('.tag-link');
 
@@ -127,8 +127,8 @@ function setupSearchPageInteractions() {
     if (mainContent && sidebar) {
         document.addEventListener('click', (event) => {
             // Check if sidebar is visible and the click was not on the sidebar or the toggle button
-            if (sidebar.classList.contains('sidebar-visible') && 
-                !sidebar.contains(event.target) && 
+            if (sidebar.classList.contains('sidebar-visible') &&
+                !sidebar.contains(event.target) &&
                 !hamburgerBtn.contains(event.target)) {
                 sidebar.classList.remove('sidebar-visible');
             }
