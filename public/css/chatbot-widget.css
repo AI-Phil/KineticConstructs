@@ -1,3 +1,12 @@
+/**
+ * Chatbot Widget Core CSS
+ * This file contains the base styling for the chatbot widget UI.
+ * For application-specific styles, use chatbot-widget-local.css
+ */
+
+/* ------------------------------------------------------------
+ * WIDGET CONTAINER
+ * ------------------------------------------------------------ */
 .chat-widget {
     position: fixed;
     bottom: 20px;
@@ -18,6 +27,9 @@
     display: flex;
 }
 
+/* ------------------------------------------------------------
+ * HEADER SECTION
+ * ------------------------------------------------------------ */
 .chat-header {
     padding: 15px;
     background: #007bff;
@@ -65,98 +77,28 @@
     padding: 0 5px;
 }
 
-.chat-messages {
+/* ------------------------------------------------------------
+ * CHAT MESSAGES CONTAINER
+ * ------------------------------------------------------------ */
+#chat-messages {
     flex-grow: 1;
-    padding: 15px;
-    overflow-y: auto;
-}
-
-.message {
-    margin-bottom: 10px;
     padding: 10px;
-    border-radius: 10px;
-    max-width: 90%;
-}
-
-.message.user {
-    background: #007bff;
-    color: white;
-    margin-left: auto;
-}
-
-.message.bot {
-    background: #f0f0f0;
-    margin-right: auto;
-}
-
-.message.bot img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 5px;
-    margin: 10px 0;
-}
-
-.message.bot a {
-    color: #007bff;
-    text-decoration: none;
-}
-
-.message.bot a:hover {
-    text-decoration: underline;
-}
-
-.message.bot ul, .message.bot ol {
-    margin: 10px 0;
-    padding-left: 20px;
-}
-
-.message.bot li {
-    margin: 5px 0;
-}
-
-.chat-input {
-    padding: 15px;
-    border-top: 1px solid #eee;
+    overflow-y: auto;
     display: flex;
+    flex-direction: column;
     gap: 10px;
 }
 
-.chat-input input {
-    flex-grow: 1;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-
-.chat-input button {
-    padding: 8px 15px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.chat-toggle {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: #007bff;
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    z-index: 1000;
-}
-
-.chat-toggle:hover {
-    background: #0056b3;
+/* ------------------------------------------------------------
+ * MESSAGE BUBBLES
+ * ------------------------------------------------------------ */
+.chat-message {
+    padding: 8px 12px;
+    border-radius: 10px;
+    max-width: 80%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    line-height: 1.4;
 }
 
 .chat-message.user {
@@ -173,7 +115,10 @@
     border-radius: 10px 10px 10px 0;
 }
 
-/* Ensure proper spacing for markdown elements within bot messages */
+/* ------------------------------------------------------------
+ * BOT MESSAGE CONTENT FORMATTING
+ * ------------------------------------------------------------ */
+/* General HTML element styling for bot messages */
 .chat-message.bot p,
 .chat-message.bot ul,
 .chat-message.bot ol,
@@ -181,79 +126,88 @@
     margin-top: 0.5em;
     margin-bottom: 0.5em;
 }
+
 .chat-message.bot ul, .chat-message.bot ol {
-    padding-left: 20px; /* Indent lists */
+    padding-left: 20px;
 }
+
 .chat-message.bot p:first-child {
     margin-top: 0;
 }
+
 .chat-message.bot *:last-child {
     margin-bottom: 0;
 }
 
+/* Links within bot messages */
+.chat-message.bot a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.chat-message.bot a:hover {
+    text-decoration: underline;
+}
+
+/* Images within bot messages */
+.chat-message.bot img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+/* ------------------------------------------------------------
+ * THINKING ANIMATION
+ * ------------------------------------------------------------ */
 /* Styles for the thinking indicator */
 .chat-message.bot.thinking-indicator {
-    background-color: transparent; /* No background for the container */
-    padding: 10px 0; /* Adjust padding as needed */
+    background-color: transparent;
+    padding: 10px 0;
     display: flex;
     align-items: center;
-    min-height: 20px; /* Ensure it has some height */
+    min-height: 20px;
 }
 
-.thinking-indicator span {
+/* Styling for the thinking dots animation */
+.thinking-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    min-height: 20px;
+}
+
+.thinking-dots span {
     display: inline-block;
-    width: 8px;
-    height: 8px;
-    margin: 0 3px;
-    background-color: #aaa; /* Dot color */
+    width: 10px;
+    height: 10px;
+    margin: 0 4px;
+    background-color: #555;
     border-radius: 50%;
-    animation: thinking-dots 1.4s infinite ease-in-out both;
+    animation: thinking-dots-bounce 1.4s infinite ease-in-out both;
 }
 
-.thinking-indicator span:nth-child(1) {
-    animation-delay: -0.30s;
+.thinking-dots span:nth-child(1) {
+    animation-delay: -0.32s;
 }
 
-.thinking-indicator span:nth-child(2) {
-    animation-delay: -0.15s;
+.thinking-dots span:nth-child(2) {
+    animation-delay: -0.16s;
 }
 
-.thinking-indicator span:nth-child(3) {
-    animation-delay: 0s;
-}
-
-@keyframes thinking-dots {
+@keyframes thinking-dots-bounce {
     0%, 80%, 100% {
         transform: scale(0.5);
-        opacity: 0.5;
     }
     40% {
         transform: scale(1.0);
-        opacity: 1;
     }
 }
 
-#chat-messages {
-    flex-grow: 1;
-    padding: 10px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px; /* Space between messages */
-}
-
-.chat-message {
-    padding: 8px 12px;
-    border-radius: 10px;
-    max-width: 80%; /* Prevent messages from taking full width */
-    overflow-wrap: break-word; /* For long words/strings */
-    word-wrap: break-word; /* Older browser support */
-    line-height: 1.4;
-}
-
-/* .chat-message.user is defined above */
-/* .chat-message.bot is defined above */
-
+/* ------------------------------------------------------------
+ * INPUT AREA
+ * ------------------------------------------------------------ */
 #chat-input-area {
     display: flex;
     padding: 10px;
@@ -277,12 +231,42 @@
     border-radius: 5px;
     cursor: pointer;
 }
+
 #chat-send-button:hover {
     background: #0056b3;
 }
 
-/* Responsive adjustments */
-@media screen and (max-width: 992px) { /* Tablet and smaller desktops */
+/* ------------------------------------------------------------
+ * CHAT TOGGLE BUTTON
+ * ------------------------------------------------------------ */
+.chat-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.chat-toggle:hover {
+    background: #0056b3;
+}
+
+/* ------------------------------------------------------------
+ * RESPONSIVE LAYOUTS
+ * ------------------------------------------------------------ */
+/* Tablet adjustments */
+@media screen and (max-width: 992px) {
     .chat-widget {
         width: 600px;
         max-width: 90vw;
@@ -293,7 +277,8 @@
     }
 }
 
-@media screen and (max-width: 768px) { /* Mobile devices */
+/* Mobile adjustments */
+@media screen and (max-width: 768px) {
     .chat-widget {
         width: 100vw;
         height: 100vh;
@@ -307,22 +292,16 @@
     }
 
     .chat-header {
-        border-radius: 0; /* Remove border-radius when full screen */
+        border-radius: 0;
     }
 
     #chat-messages {
-        padding: 10px; /* Adjust padding for smaller screens */
+        padding: 10px;
     }
 
     .chat-message {
-        max-width: 90%; /* Allow messages to be a bit wider on mobile */
+        max-width: 90%;
     }
-
-    /* Optionally hide the main toggle when chat is active and full screen */
-    /* .chat-widget.active + .chat-toggle { */
-        /* This rule assumes .chat-toggle is the next sibling of .chat-widget when .chat-widget is active */
-        /* display: none; */ /* Re-evaluate if this is the best approach, might conflict with current toggle logic */
-    /* } */
 }
 
 /* Product Recommendations Styling */

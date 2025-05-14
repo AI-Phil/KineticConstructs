@@ -6,6 +6,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // Function to attach click handlers to all internal links
+    function setupBackgroundNavigationLinks(container = document) {
+        const links = container.querySelectorAll('a[href^="/"]:not([data-bypass-background-nav])');
+        links.forEach(link => {
+            // Skip external links or links with the bypass attribute
+            if (link.hostname !== window.location.hostname || link.getAttribute('data-bypass-background-nav') === 'true') {
+                return;
+            }
+            
+            link.addEventListener('click', function(event) {
+                // Don't capture if user pressed modifier keys (to open in new tab, etc.)
+                if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                    return;
+                }
+                
+                event.preventDefault();
+                const url = this.href;
+                
+                // Use the same loadContent function as for backgroundNavigationRequest
+                loadContent(url, false);
+            });
+        });
+    }
+
     async function loadContent(url, isPopState = false) {
         console.log(`Loading content for URL: ${url}, popstate: ${isPopState}`);
         try {
@@ -24,7 +48,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const htmlText = await response.text();
             const newTitle = response.headers.get('X-Page-Title');
 
-            mainContentElement.innerHTML = htmlText;
+            // Remove duplicate navigation elements before inserting content
+            let tempContainer = document.createElement('div');
+            tempContainer.innerHTML = htmlText;
+            
+            // Remove any navigation elements that might be included in the fetched content
+            const duplicateNavs = tempContainer.querySelectorAll('nav');
+            duplicateNavs.forEach(nav => {
+                // Only remove navigation elements that appear to be main navigation
+                // Check if this nav contains links to Home or Search Products
+                const navLinks = nav.querySelectorAll('a');
+                let isMainNav = false;
+                navLinks.forEach(link => {
+                    if (link.textContent.includes('Home') || link.textContent.includes('Search Products')) {
+                        isMainNav = true;
+                    }
+                });
+                
+                if (isMainNav) {
+                    nav.parentNode.removeChild(nav);
+                }
+            });
+            
+            // Update the content with the cleaned HTML
+            mainContentElement.innerHTML = tempContainer.innerHTML;
             
             if (newTitle) {
                 document.title = newTitle;
@@ -33,6 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isPopState) {
                 history.pushState({ path: url }, '', url);
             }
+
+            // Set up click handlers for all links in the new content
+            setupBackgroundNavigationLinks(mainContentElement);
 
             // Dispatch a custom event that other scripts can listen to for re-initialization.
             const contentUpdateEvent = new CustomEvent('mainContentReloaded', {
@@ -65,4 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.reload();
         }
     });
+    
+    // Set up initial click handlers
+    setupBackgroundNavigationLinks();
 }); 
