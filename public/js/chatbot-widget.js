@@ -15,7 +15,7 @@ const CHAT_LOG_STORAGE_KEY = 'chatLogPersistent';
 const INTRODUCTORY_MESSAGE = {
     text: "Hello! I'm your Product Assistant. How can I help you find the perfect product today?",
     sender: 'bot',
-    isMarkdown: false
+    isHTML: false
 };
 
 // --- Function Definitions ---
@@ -27,7 +27,7 @@ function renderChatLog() {
     }
     messagesContainer.innerHTML = ''; 
     chatLog.forEach(entry => {
-        addMessage(entry.text, entry.sender, entry.isMarkdown);
+        addMessage(entry.text, entry.sender, entry.isHTML);
     });
 }
 
@@ -35,7 +35,7 @@ function saveChatLog() {
     localStorage.setItem(CHAT_LOG_STORAGE_KEY, JSON.stringify(chatLog));
 }
 
-function addMessage(text, sender, isMarkdown = false, messageId = null) {
+function addMessage(text, sender, isHTML = false, messageId = null) {
     const messageElement = document.createElement('div');
     messageElement.classList.add('chat-message', sender);
     if (messageId) {
@@ -45,14 +45,8 @@ function addMessage(text, sender, isMarkdown = false, messageId = null) {
     if (messageId && messageId.startsWith('thinking-')) {
         messageElement.classList.add('thinking-indicator');
         messageElement.innerHTML = '<span></span><span></span><span></span>';
-    } else if (isMarkdown && typeof marked !== 'undefined') {
-        try {
-            const parsedMarkdown = marked.parse(text);
-            messageElement.innerHTML = parsedMarkdown;
-        } catch (error) {
-            console.error('Markdown parsing error:', error);
-            messageElement.textContent = text; 
-        }
+    } else if (isHTML) {
+        messageElement.innerHTML = text;
     } else {
         messageElement.textContent = text;
     }
@@ -64,8 +58,8 @@ function addMessage(text, sender, isMarkdown = false, messageId = null) {
     messagesContainer.appendChild(messageElement);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    // Intercept links if the message was rendered from Markdown
-    if (isMarkdown) {
+    // Intercept links in HTML messages
+    if (isHTML) {
         const links = messageElement.querySelectorAll('a');
         links.forEach(link => {
             // Only intercept relative links or links to the same origin
@@ -77,6 +71,32 @@ function addMessage(text, sender, isMarkdown = false, messageId = null) {
                     const navEvent = new CustomEvent('backgroundNavigationRequest', {
                         detail: { url: url },
                         bubbles: true, // Allow event to bubble up to document
+                        cancelable: true
+                    });
+                    document.dispatchEvent(navEvent);
+                });
+            }
+        });
+        
+        // Make product recommendation cards clickable
+        const productCards = messageElement.querySelectorAll('.product-recommendation');
+        productCards.forEach(card => {
+            const titleLink = card.querySelector('h4 a');
+            if (titleLink) {
+                const url = titleLink.href;
+                
+                // Add click event to the entire card
+                card.addEventListener('click', function(event) {
+                    // Prevent click event if the actual link or an image was clicked directly
+                    if (event.target.tagName === 'A' || event.target.tagName === 'IMG') {
+                        return;
+                    }
+                    
+                    event.preventDefault();
+                    console.log('Product card clicked, dispatching backgroundNavigationRequest for:', url);
+                    const navEvent = new CustomEvent('backgroundNavigationRequest', {
+                        detail: { url: url },
+                        bubbles: true,
                         cancelable: true
                     });
                     document.dispatchEvent(navEvent);
@@ -132,7 +152,7 @@ function sendMessage() {
     if (!messageText) return;
 
     addMessage(messageText, 'user');
-    chatLog.push({ text: messageText, sender: 'user', isMarkdown: false });
+    chatLog.push({ text: messageText, sender: 'user', isHTML: false });
     saveChatLog();
 
     chatInput.value = '';
@@ -175,7 +195,7 @@ function sendMessage() {
     })
     .then(data => {
         let botResponseMessageText;
-        let botResponseIsMarkdown = false;
+        let botResponseIsHTML = false;
         if (data && data.outputs && data.outputs.length > 0) {
             const responseObjectOutputsArrayElement = data.outputs[0];
             if (responseObjectOutputsArrayElement && 
@@ -193,7 +213,7 @@ function sendMessage() {
                     }
                     if (typeof dataPayload.text === 'string' && dataPayload.text.trim() !== '') {
                         botResponseMessageText = dataPayload.text;
-                        botResponseIsMarkdown = true;
+                        botResponseIsHTML = true;
                     }
                 }
             }
@@ -208,15 +228,15 @@ function sendMessage() {
             } else {
                 botResponseMessageText = "[No response or unexpected format from bot server]";
             }
-            botResponseIsMarkdown = false;
+            botResponseIsHTML = false;
         }
         if (botResponseMessageText) {
-            addMessage(botResponseMessageText, 'bot', botResponseIsMarkdown);
-            chatLog.push({ text: botResponseMessageText, sender: 'bot', isMarkdown: botResponseIsMarkdown });
+            addMessage(botResponseMessageText, 'bot', botResponseIsHTML);
+            chatLog.push({ text: botResponseMessageText, sender: 'bot', isHTML: botResponseIsHTML });
         } else {
             const anErrorOccurredMsg = "I'm sorry, an unexpected issue occurred while processing the response.";
             addMessage(anErrorOccurredMsg, 'bot', false);
-            chatLog.push({ text: anErrorOccurredMsg, sender: 'bot', isMarkdown: false });
+            chatLog.push({ text: anErrorOccurredMsg, sender: 'bot', isHTML: false });
         }
         saveChatLog();
     })
@@ -224,7 +244,7 @@ function sendMessage() {
         console.error('Fetch error:', error);
         const errorMsg = 'Error: Could not connect to the bot server. ' + error.message;
         addMessage(errorMsg, 'bot', false);
-        chatLog.push({ text: errorMsg, sender: 'bot', isMarkdown: false });
+        chatLog.push({ text: errorMsg, sender: 'bot', isHTML: false });
         saveChatLog();
     })
     .finally(() => {
@@ -240,15 +260,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!chatWindow || !chatToggle || !messagesContainer || !chatInput || !sendButton || !minimizeChatButton || !clearChatButton) {
          console.error("Chatbot Widget Error: One or more essential DOM elements are missing. Ensure HTML structure is correct and IDs match.");
          return;
-    }
-    
-    if (typeof marked === 'undefined') {
-        console.warn("Marked library is not loaded. Markdown rendering will be disabled for chatbot messages.");
-    } else {
-        marked.setOptions({
-            breaks: true,
-            gfm: true
-        });
     }
 
     chatToggle.addEventListener('click', () => {
