@@ -411,22 +411,29 @@ Stop the server (Ctrl+C).
 
 ### Iteration 4: Simplify with Langflow!
 
-In this iteration, we evolve our search by abstracting the initial candidate generation (product SKUs) to a Langflow flow. Instead of Langflow returning full product details, it will provide a list of relevant Stock Keeping Units (SKUs) based on the user's natural language query. Our Node.js application (`server_4.js`) will then take these SKUs, combine them with any active sidebar filters (category, tags), and query Astra DB for the final product details. This approach leverages Langflow for sophisticated query understanding and SKU retrieval, while `server_4.js` handles the final data fetching and filtering.
+In this iteration, we evolve our search by leveraging the power of large language models (LLM) to determine the search query, 
+and to tailor the results to the user's requirements. This simplification allows us to add a chatbot to our original `server.js` 
+application by enabling a chat widget that has been hidden in plain sight all along.
 
 **How it Works:**
 
-- The user enters a query in the web app.
-- The query is sent to Langflow, where the imported flow (from `flows/Product Catalog Hybrid Search - server_4.js.json`) processes it as follows:
+- The user asks the Product Assistant chatbot for a product recommendation.
+- The query is sent to Langflow, where an Agentic flow (`flows/Product Recommender.json`):
   - **Chat Input** receives the query.
-  - **Prompt** provides context and instructions for the LLM to act as a query planner.
-  - **OpenAI** (GPT-4o) generates a structured search plan.
-  - **Structured Output** ensures the LLM output is in a consistent, structured format.
-  - **Parser** nodes extract the semantic and keyword components from the plan.
-  - **Astra DB** receives the search plan and acts as a hybrid search component, retrieving relevant products from the `products` collection using both semantic and lexical criteria.
-  - **Parser** formats the search results as a list of SKUs, each line as `Text: {sku}`.
-  - **Chat Output** returns the formatted SKUs as a newline-separated string.
-- The Node.js server (`server_4.js`) receives the SKUs, combines them with any sidebar filters (category, tags), and queries Astra DB for the final product details.
-- The UI displays the filtered product results.
+  - **Agent** determines to use a tool to help complete the query
+    - **Product Catalog Search** is tool that is implemented as another flow (`flows/Product Catalog Hybrid Search`) described below
+    - Receives results from the search and determines what products best match the user's query
+    - Outputs results in HTML format
+  - **Chat Output** returns the agent's output to the user
+- The search itself is executed by the **Product Catalog Hybrid Search** flow, which:
+  - **Chat Input** receives the query.
+  - **Structured Output** uses a LLM to convert that query into a "question" (`$vectorize`) and "keywords (`$lexical`) hybrid search
+    - **Prompt** is used by the Structured Output component, providing context and instructions for the LLM to do this conversion
+  - Two **Parser** components extract the specific semantic and keyword elements of the structured data output by the Structured Output component
+  - **Astra DB** receives the search plan and acts as a hybrid search component, retrieving relevant products from the `products` collection using 
+    both semantic and lexical criteria.
+  - Another **Parser** component converts the `product` JSON documents into a string
+  - **Chat Output** sends this string back to the caller
 
 **Key Points:**
 - The Langflow flow is imported (not built from scratch) and must have your Astra DB credentials inserted.
@@ -476,101 +483,7 @@ The final output from Langflow must be a string with each SKU on a new line, eac
     *   Note the **endpoint URL** and ensure your `LANGFLOW_RAG_API_ENDPOINT` in the `.env` file for `server_4.js` matches this URL.
     *   The expected JSON input for the API call will be `{"input_value": "user query text"}`.
 
-4.  **Review `server_4.js` Implementation:**
-    `server_4.js` shifts the responsibility of interpreting the natural language query. Instead of `server_3.js` directly using Astra DB's `$hybrid` or `$vectorize` search, `server_4.js` calls a Langflow API endpoint. Langflow processes the query and returns a list of relevant product SKUs. The Node.js server then uses these SKUs to fetch the final details from Astra DB, applying sidebar filters and respecting Langflow's ordering.
-
-    **Key Differences from `server_3.js` to `server_4.js`:**
-
-    *   **Environment:** Checks for `LANGFLOW_RAG_API_ENDPOINT` in `.env`.
-    *   **New Function:** Introduces `queryLangflowRAG(userQuery)` to handle the API call to Langflow and parse the returned SKUs.
-    *   **Search Route (`/search`):**
-        *   **Removed:** Direct use of `$vectorize`, `$hybrid`, and `findAndRerank` based on `req.query.q` or `req.query.keyword`.
-        *   **Added:** If `req.query.q` (semantic query) exists:
-            *   Calls `queryLangflowRAG`.
-            *   Uses the returned `langflowSkus` to add an `{ sku: { $in: langflowSkus } }` condition to the database query filter.
-            *   If Langflow returns no SKUs for the query, adds `{ sku: '__LANGFLOW_RETURNED_NO_SKUS__' }` to the filter instead, ensuring the semantic query yields no results from the DB.
-        *   **Simplified DB Query:** Always uses `productCollection.find()` with the combined filter (sidebar selections + Langflow SKUs). The `options` object no longer contains `sort` clauses like `$vectorize` or `$hybrid`.
-        *   **Added Reordering:** After fetching products from the database, if Langflow provided SKUs, the `products` array is explicitly re-sorted to match the order of SKUs in the `langflowSkus` list.
-        *   **View:** Sets `keywordSearchEnabled: false` when rendering, as the second keyword input is not used in this approach.
-    *   **Startup:** Added a console log reminding the user about the Langflow dependency.
-
-    **Code Highlights (Illustrating the Key Changes):**
-    ```javascript
-// server_4.js - New function to call Langflow
-async function queryLangflowRAG(userQuery) {
-    const langflowApiUrl = process.env.LANGFLOW_RAG_API_ENDPOINT;
-    const requestBody = { input_value: userQuery };
-    // ... (fetch call to langflowApiUrl)
-    // ... (response handling and parsing logic)
-    // ... (extracts skus from result.outputs[0].outputs[0].results.message.text)
-    // Returns { skus: Array<string>, error: string | null }
-}
-
-// server_4.js - /search route changes (conceptual)
-app.get('/search', async (req, res) => {
-    const semanticQuery = req.query.q;
-    // ... (get sidebar filters: requestedFamily, requestedType, requestedTags)
-    
-    const filterConditions = [];
-    let error = null;
-    // ... (add sidebar filters to filterConditions)
-
-    let langflowSkus = null;
-    if (semanticQuery) {
-        // **CHANGE: Call Langflow instead of preparing $vectorize/$hybrid**
-        const langflowResult = await queryLangflowRAG(semanticQuery);
-        if (langflowResult.error) {
-            error = langflowResult.error;
-        } else if (langflowResult.skus && langflowResult.skus.length > 0) {
-            langflowSkus = langflowResult.skus;
-            // **CHANGE: Add SKU filter based on Langflow results**
-            filterConditions.push({ sku: { $in: langflowSkus } });
-        } else {
-            // **CHANGE: Ensure no results if Langflow finds none for the query**
-            filterConditions.push({ sku: '__LANGFLOW_RETURNED_NO_SKUS__' });
-        }
-    }
-
-    // **CHANGE: Build final filter simply**
-    let dbQueryFilter = {}; 
-    if (filterConditions.length > 1) {
-        dbQueryFilter = { $and: filterConditions };
-    } else if (filterConditions.length === 1) {
-        dbQueryFilter = filterConditions[0];
-    }
-    
-    let products = [];
-    if (!productCollection) { /* handle error */ } 
-    else {
-        try {
-            const options = { limit: 25 }; // **CHANGE: Simple options**
-            // **CHANGE: Always use find(), no findAndRerank**
-            const cursor = await productCollection.find(dbQueryFilter, options);
-            products = await cursor.toArray();
-
-            // **CHANGE: Add explicit reordering based on Langflow SKU list**
-            if (semanticQuery && langflowSkus && langflowSkus.length > 0 && products.length > 0) {
-                const skuOrderMap = new Map(langflowSkus.map((sku, index) => [sku, index]));
-                products.sort((a, b) => skuOrderMap.get(a.sku) - skuOrderMap.get(b.sku));
-            }
-            // ... (handle case where Langflow SKUs yield 0 DB results)
-        } catch (dbError) { /* handle error */ }
-    }
-
-    // ... (prepare other view data)
-
-    res.render('search', {
-        // ... other view variables
-        products: products,
-        error: error,
-        semanticSearchEnabled: true,
-        // **CHANGE: Keyword search field is not used in this server version**
-        keywordSearchEnabled: false  
-    });
-});
-    ```
-
-5.  **Try it Out:**
+4.  **Try it Out:**
     *   Ensure your Langflow SKU retrieval flow is running and the endpoint is correctly set in your `.env` file.
     *   Run `server_4.js`:
         ```bash
