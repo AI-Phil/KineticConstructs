@@ -32,17 +32,7 @@ if (!ASTRA_DB_API_ENDPOINT || !ASTRA_DB_TOKEN) {
 // Chatbot configuration
 const CHATBOT_API_BASE_PATH = '/api/chatbot';
 const chatbots = {
-    'product-assistant': {
-        enabled: false,
-        flowId: LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID,
-        client: null
-    }
-    // Additional chatbots can be defined here
-    // 'customer-support': {
-    //    enabled: false,
-    //    flowId: LANGFLOW_CUSTOMER_SUPPORT_FLOW_ID,
-    //    client: null
-    // }
+    // Chatbots will be defined from environment variables during initialization
 };
 
 // Initialize Langflow client if endpoint is available
@@ -64,19 +54,43 @@ try {
         langflowClient = new LangflowClient(clientConfig);
         console.log('Langflow client initialized successfully.');
         
-        // Enable chatbots with valid flow IDs
-        if (LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID) {
-            console.log(`Enabling Product Assistant chatbot with flow ID: ${LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID}`);
-            chatbots['product-assistant'].enabled = true;
-            chatbots['product-assistant'].client = langflowClient;
-            chatbots['product-assistant'].flowId = LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID;
-            console.log('Product Assistant chatbot enabled.');
+        // Find and register all available chatbot types from environment variables
+        // Format: LANGFLOW_<TYPE>_FLOW_ID (e.g., LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID)
+        const chatbotEnvVars = Object.keys(process.env).filter(key => 
+            key.startsWith('LANGFLOW_') && key.endsWith('_FLOW_ID')
+        );
+        
+        console.log(`Found ${chatbotEnvVars.length} potential chatbot flow IDs in environment variables`);
+        
+        chatbotEnvVars.forEach(envVar => {
+            const flowId = process.env[envVar];
+            if (!flowId) return;
+            
+            // Extract chatbot type from environment variable name
+            // Convert LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID to product-assistant
+            const typeMatch = envVar.match(/LANGFLOW_(.+)_FLOW_ID/);
+            if (!typeMatch || !typeMatch[1]) return;
+            
+            const chatbotType = typeMatch[1]
+                .replace(/_/g, '-')
+                .toLowerCase();
+                
+            console.log(`Registering chatbot type '${chatbotType}' with flow ID: ${flowId}`);
+            
+            chatbots[chatbotType] = {
+                enabled: true,
+                flowId: flowId,
+                client: langflowClient
+            };
+            
+            console.log(`Chatbot '${chatbotType}' enabled and ready.`);
+        });
+        
+        if (Object.keys(chatbots).length === 0) {
+            console.warn('No chatbot flow IDs found in environment variables. No chatbots will be available.');
         } else {
-            console.warn('Product Assistant flow ID not set. This chatbot will be disabled.');
+            console.log(`Successfully registered ${Object.keys(chatbots).length} chatbots: ${Object.keys(chatbots).join(', ')}`);
         }
-        
-        // Initialize other chatbots here as needed
-        
     } else {
         console.warn('LANGFLOW_ENDPOINT not set. All chatbot functionality will be disabled.');
     }
@@ -478,9 +492,11 @@ app.get(`${CHATBOT_API_BASE_PATH}/:botId/status`, (req, res) => {
     const chatbot = chatbots[botId];
     
     if (!chatbot) {
-        return res.status(404).json({
+        // Return 200 OK with disabled status instead of 404
+        // This allows the frontend to gracefully handle unavailable chatbots
+        return res.status(200).json({
             enabled: false,
-            message: `Chatbot '${botId}' not found`
+            message: `Chatbot '${botId}' is currently unavailable`
         });
     }
     

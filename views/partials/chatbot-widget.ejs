@@ -25,5 +25,27 @@
         </svg>
     </button>
 
+    <%# Load core and local CSS files %>
     <link rel="stylesheet" href="/css/chatbot-widget.css">
+    <link rel="stylesheet" href="/css/chatbot-widget-local.css">
+    
+    <%# Load JavaScript %>
     <script src="/js/chatbot-widget.js"></script>
+    <script>
+        // Initialize the chatbot once the JS file has loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof window.initChatbot === 'function') {
+                window.initChatbot({
+                    chatbotType: "product-assistant",
+                    introductoryMessage: {
+                        text: "Hello! I'm your Product Assistant. How can I help you find the perfect product today?",
+                        sender: "bot",
+                        isHTML: true
+                    },
+                    persistChat: true
+                });
+            } else {
+                console.error("Chatbot initialization function not found. Make sure chatbot-widget.js is loaded properly.");
+            }
+        });
+    </script>
