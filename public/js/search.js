@@ -1,6 +1,15 @@
 // This file now handles interactions specifically on the /search page
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
+    setupSearchPageInteractions();
+});
+
+// Listen for content updates via background navigation
+document.addEventListener('mainContentReloaded', function(event) {
+    setupSearchPageInteractions();
+});
+
+function setupSearchPageInteractions() {
     // --- Semantic Search and Keyword Search Interaction ---
     const semanticSearchInput = document.querySelector('.semantic-search input');
     const keywordSearchInput = document.querySelector('.keyword-search input');
@@ -89,7 +98,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (card && !isClickOnTagLink) {
                 const targetUrl = card.dataset.href;
                 if (targetUrl) {
-                    window.location.href = targetUrl; // Navigate to the product page
+                    // Use background navigation instead of direct location change for smoother experience
+                    const navEvent = new CustomEvent('backgroundNavigationRequest', {
+                        detail: { url: targetUrl },
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    document.dispatchEvent(navEvent);
                 }
             }
             // If the click was on a tag-link, the browser's default link behavior will handle it.
@@ -121,8 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Other potential search page interactions (e.g., advanced hierarchy toggles) could go here ---
-
-});
+}
 
 /* 
    Removed modal logic as it's no longer used on the search page.
