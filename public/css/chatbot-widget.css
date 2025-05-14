@@ -173,7 +173,7 @@
     border-radius: 10px 10px 10px 0;
 }
 
-/* Ensure proper spacing for markdown elements within bot messages */
+/* General HTML element styling for bot messages */
 .chat-message.bot p,
 .chat-message.bot ul,
 .chat-message.bot ol,
@@ -182,7 +182,7 @@
     margin-bottom: 0.5em;
 }
 .chat-message.bot ul, .chat-message.bot ol {
-    padding-left: 20px; /* Indent lists */
+    padding-left: 20px;
 }
 .chat-message.bot p:first-child {
     margin-top: 0;
@@ -193,11 +193,11 @@
 
 /* Styles for the thinking indicator */
 .chat-message.bot.thinking-indicator {
-    background-color: transparent; /* No background for the container */
-    padding: 10px 0; /* Adjust padding as needed */
+    background-color: transparent;
+    padding: 10px 0;
     display: flex;
     align-items: center;
-    min-height: 20px; /* Ensure it has some height */
+    min-height: 20px;
 }
 
 .thinking-indicator span {
@@ -205,7 +205,7 @@
     width: 8px;
     height: 8px;
     margin: 0 3px;
-    background-color: #aaa; /* Dot color */
+    background-color: #aaa;
     border-radius: 50%;
     animation: thinking-dots 1.4s infinite ease-in-out both;
 }
@@ -239,20 +239,17 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px; /* Space between messages */
+    gap: 10px;
 }
 
 .chat-message {
     padding: 8px 12px;
     border-radius: 10px;
-    max-width: 80%; /* Prevent messages from taking full width */
-    overflow-wrap: break-word; /* For long words/strings */
-    word-wrap: break-word; /* Older browser support */
+    max-width: 80%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
     line-height: 1.4;
 }
-
-/* .chat-message.user is defined above */
-/* .chat-message.bot is defined above */
 
 #chat-input-area {
     display: flex;
@@ -282,7 +279,7 @@
 }
 
 /* Responsive adjustments */
-@media screen and (max-width: 992px) { /* Tablet and smaller desktops */
+@media screen and (max-width: 992px) {
     .chat-widget {
         width: 600px;
         max-width: 90vw;
@@ -293,7 +290,7 @@
     }
 }
 
-@media screen and (max-width: 768px) { /* Mobile devices */
+@media screen and (max-width: 768px) {
     .chat-widget {
         width: 100vw;
         height: 100vh;
@@ -307,22 +304,16 @@
     }
 
     .chat-header {
-        border-radius: 0; /* Remove border-radius when full screen */
+        border-radius: 0;
     }
 
     #chat-messages {
-        padding: 10px; /* Adjust padding for smaller screens */
+        padding: 10px;
     }
 
     .chat-message {
-        max-width: 90%; /* Allow messages to be a bit wider on mobile */
+        max-width: 90%;
     }
-
-    /* Optionally hide the main toggle when chat is active and full screen */
-    /* .chat-widget.active + .chat-toggle { */
-        /* This rule assumes .chat-toggle is the next sibling of .chat-widget when .chat-widget is active */
-        /* display: none; */ /* Re-evaluate if this is the best approach, might conflict with current toggle logic */
-    /* } */
 }
 
 /* Product Recommendations Styling */

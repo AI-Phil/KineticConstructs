@@ -15,7 +15,7 @@ const CHAT_LOG_STORAGE_KEY = 'chatLogPersistent';
 const INTRODUCTORY_MESSAGE = {
     text: "Hello! I'm your Product Assistant. How can I help you find the perfect product today?",
     sender: 'bot',
-    isHTML: false
+    isHTML: true
 };
 
 // --- Function Definitions ---
@@ -70,7 +70,7 @@ function addMessage(text, sender, isHTML = false, messageId = null) {
                     console.log('Chatbot link clicked, dispatching backgroundNavigationRequest for:', url);
                     const navEvent = new CustomEvent('backgroundNavigationRequest', {
                         detail: { url: url },
-                        bubbles: true, // Allow event to bubble up to document
+                        bubbles: true, 
                         cancelable: true
                     });
                     document.dispatchEvent(navEvent);
@@ -195,7 +195,7 @@ function sendMessage() {
     })
     .then(data => {
         let botResponseMessageText;
-        let botResponseIsHTML = false;
+        let botResponseIsHTML = true; // Default to HTML since we're now expecting HTML responses
         if (data && data.outputs && data.outputs.length > 0) {
             const responseObjectOutputsArrayElement = data.outputs[0];
             if (responseObjectOutputsArrayElement && 
@@ -213,7 +213,6 @@ function sendMessage() {
                     }
                     if (typeof dataPayload.text === 'string' && dataPayload.text.trim() !== '') {
                         botResponseMessageText = dataPayload.text;
-                        botResponseIsHTML = true;
                     }
                 }
             }
@@ -222,13 +221,15 @@ function sendMessage() {
             if (data && data.outputs && data.outputs.length > 0) {
                 try {
                     botResponseMessageText = JSON.stringify(data.outputs[0], null, 2);
+                    botResponseIsHTML = false; // Error message as plain text
                 } catch (e) {
                     botResponseMessageText = "[Error displaying message content]";
+                    botResponseIsHTML = false;
                 }
             } else {
                 botResponseMessageText = "[No response or unexpected format from bot server]";
+                botResponseIsHTML = false;
             }
-            botResponseIsHTML = false;
         }
         if (botResponseMessageText) {
             addMessage(botResponseMessageText, 'bot', botResponseIsHTML);
