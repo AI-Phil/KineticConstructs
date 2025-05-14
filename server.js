@@ -15,10 +15,10 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Environment variables validation
-const { 
-    ASTRA_DB_API_ENDPOINT, 
-    ASTRA_DB_TOKEN, 
-    ASTRA_DB_COLLECTION, 
+const {
+    ASTRA_DB_API_ENDPOINT,
+    ASTRA_DB_TOKEN,
+    ASTRA_DB_COLLECTION,
     LANGFLOW_ENDPOINT,
     LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID,
     LANGFLOW_API_KEY
@@ -43,49 +43,49 @@ try {
         const clientConfig = {
             baseUrl: LANGFLOW_ENDPOINT
         };
-        
+
         if (LANGFLOW_API_KEY) {
             console.log('Using API key for Langflow authentication');
             clientConfig.apiKey = LANGFLOW_API_KEY;
         } else {
             console.log('No API key provided for Langflow');
         }
-        
+
         langflowClient = new LangflowClient(clientConfig);
         console.log('Langflow client initialized successfully.');
-        
+
         // Find and register all available chatbot types from environment variables
         // Format: LANGFLOW_<TYPE>_FLOW_ID (e.g., LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID)
-        const chatbotEnvVars = Object.keys(process.env).filter(key => 
+        const chatbotEnvVars = Object.keys(process.env).filter(key =>
             key.startsWith('LANGFLOW_') && key.endsWith('_FLOW_ID')
         );
-        
+
         console.log(`Found ${chatbotEnvVars.length} potential chatbot flow IDs in environment variables`);
-        
+
         chatbotEnvVars.forEach(envVar => {
             const flowId = process.env[envVar];
             if (!flowId) return;
-            
+
             // Extract chatbot type from environment variable name
             // Convert LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID to product-assistant
             const typeMatch = envVar.match(/LANGFLOW_(.+)_FLOW_ID/);
             if (!typeMatch || !typeMatch[1]) return;
-            
+
             const chatbotType = typeMatch[1]
                 .replace(/_/g, '-')
                 .toLowerCase();
-                
+
             console.log(`Registering chatbot type '${chatbotType}' with flow ID: ${flowId}`);
-            
+
             chatbots[chatbotType] = {
                 enabled: true,
                 flowId: flowId,
                 client: langflowClient
             };
-            
+
             console.log(`Chatbot '${chatbotType}' enabled and ready.`);
         });
-        
+
         if (Object.keys(chatbots).length === 0) {
             console.warn('No chatbot flow IDs found in environment variables. No chatbots will be available.');
         } else {
@@ -490,7 +490,7 @@ app.get('/api/document/:docId', async (req, res) => {
 app.get(`${CHATBOT_API_BASE_PATH}/:botId/status`, (req, res) => {
     const botId = req.params.botId;
     const chatbot = chatbots[botId];
-    
+
     if (!chatbot) {
         // Return 200 OK with disabled status instead of 404
         // This allows the frontend to gracefully handle unavailable chatbots
@@ -499,7 +499,7 @@ app.get(`${CHATBOT_API_BASE_PATH}/:botId/status`, (req, res) => {
             message: `Chatbot '${botId}' is currently unavailable`
         });
     }
-    
+
     res.json({
         enabled: chatbot.enabled,
         message: chatbot.enabled ? `${botId} chatbot is operational` : `${botId} chatbot is currently unavailable`
@@ -514,16 +514,16 @@ app.get('/api/test-langflow', async (req, res) => {
             status: 'error'
         });
     }
-    
+
     try {
         // Simple test to check if we can get the flows from Langflow
         console.log('Testing Langflow client connection...');
         const flows = await langflowClient.getFlows();
         console.log('Langflow client test succeeded. Got flows:', flows.length);
-        
+
         // Check if our flow ID exists 
         const flowExists = flows.some(flow => flow.id === LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID);
-        
+
         return res.json({
             status: 'success',
             message: 'Langflow client is working',
@@ -552,23 +552,23 @@ app.all(`${CHATBOT_API_BASE_PATH}/:botId`, async (req, res) => {
 
     const botId = req.params.botId;
     console.log(`Received ${req.method} request for chatbot '${botId}'`);
-    
+
     const chatbot = chatbots[botId];
-    
+
     if (!chatbot) {
         console.warn(`Chatbot '${botId}' not found`);
         return res.status(404).json({
             error: `Chatbot '${botId}' not found`
         });
     }
-    
+
     if (!chatbot.enabled) {
         console.warn(`Chatbot '${botId}' is disabled`);
         return res.status(503).json({
             error: `${botId} chatbot service is currently unavailable (disabled)`
         });
     }
-    
+
     if (!chatbot.client) {
         console.warn(`Chatbot '${botId}' has no client`);
         return res.status(503).json({
@@ -577,18 +577,18 @@ app.all(`${CHATBOT_API_BASE_PATH}/:botId`, async (req, res) => {
     }
 
     // For GET requests, use query parameters; for POST, use body
-    const inputValue = req.method === 'GET' ? 
-        req.query.input_value : 
+    const inputValue = req.method === 'GET' ?
+        req.query.input_value :
         req.body.input_value;
-    
-    const sessionId = (req.method === 'GET' ? 
-        req.query.session_id : 
+
+    const sessionId = (req.method === 'GET' ?
+        req.query.session_id :
         req.body.session_id) || `session_${Date.now()}`;
-    
-    const userId = (req.method === 'GET' ? 
-        req.query.user_id : 
+
+    const userId = (req.method === 'GET' ?
+        req.query.user_id :
         req.body.user_id) || sessionId;
-    
+
     if (!inputValue && req.method === 'POST') {
         return res.status(400).json({ error: 'Missing required field: input_value' });
     }
@@ -602,7 +602,7 @@ app.all(`${CHATBOT_API_BASE_PATH}/:botId`, async (req, res) => {
             message: 'Chatbot is ready to use. Send a POST request with input_value to chat.'
         });
     }
-    
+
     console.log(`Processing ${req.method} message from user ${userId} in session ${sessionId}`);
     console.log(`Message: "${inputValue}"`);
 
@@ -613,7 +613,7 @@ app.all(`${CHATBOT_API_BASE_PATH}/:botId`, async (req, res) => {
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
-            
+
             // Create the streaming response
             console.log(`Creating streaming response with flowId: ${chatbot.flowId}`);
             try {
@@ -624,16 +624,16 @@ app.all(`${CHATBOT_API_BASE_PATH}/:botId`, async (req, res) => {
                     session_id: sessionId,
                     user_id: userId
                 });
-                
+
                 console.log(`Stream created successfully for chatbot '${botId}'`);
-                
+
                 // Process the ReadableStream
                 (async () => {
                     try {
                         for await (const event of stream) {
                             // Send the event data to the client
                             res.write(`data: ${JSON.stringify(event)}\n\n`);
-                            
+
                             // End the response when the 'end' event is received
                             if (event.event === 'end') {
                                 console.log(`Stream ended for chatbot '${botId}'`);
@@ -643,7 +643,7 @@ app.all(`${CHATBOT_API_BASE_PATH}/:botId`, async (req, res) => {
                         }
                     } catch (error) {
                         console.error(`Error processing stream for chatbot '${botId}':`, error);
-                        
+
                         // Send error to the client
                         const errorEvent = {
                             event: 'error',
@@ -652,13 +652,13 @@ app.all(`${CHATBOT_API_BASE_PATH}/:botId`, async (req, res) => {
                             }
                         };
                         res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
-                        
+
                         // End the response
                         res.write(`data: ${JSON.stringify({ event: 'end' })}\n\n`);
                         res.end();
                     }
                 })();
-                
+
                 // Handle client disconnect
                 req.on('close', () => {
                     console.log(`Client disconnected from chatbot '${botId}' stream`);
@@ -674,7 +674,7 @@ app.all(`${CHATBOT_API_BASE_PATH}/:botId`, async (req, res) => {
             // For non-streaming responses (batch mode)
             console.log(`Using batch response for chatbot '${botId}'`);
             console.log(`Creating batch response with flowId: ${chatbot.flowId}`);
-            
+
             try {
                 const response = await chatbot.client.flow(chatbot.flowId).run(inputValue, {
                     input_type: 'chat',
@@ -682,7 +682,7 @@ app.all(`${CHATBOT_API_BASE_PATH}/:botId`, async (req, res) => {
                     session_id: sessionId,
                     user_id: userId
                 });
-                
+
                 console.log(`Batch response received for chatbot '${botId}'`);
                 res.json(response);
             } catch (batchError) {
