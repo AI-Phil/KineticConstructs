@@ -14,16 +14,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (link.hostname !== window.location.hostname || link.getAttribute('data-bypass-background-nav') === 'true') {
                 return;
             }
-            
-            link.addEventListener('click', function(event) {
+
+            link.addEventListener('click', function (event) {
                 // Don't capture if user pressed modifier keys (to open in new tab, etc.)
                 if (event.ctrlKey || event.metaKey || event.shiftKey) {
                     return;
                 }
-                
+
                 event.preventDefault();
                 const url = this.href;
-                
+
                 // Use the same loadContent function as for backgroundNavigationRequest
                 loadContent(url, false);
             });
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Remove duplicate navigation elements before inserting content
             let tempContainer = document.createElement('div');
             tempContainer.innerHTML = htmlText;
-            
+
             // Remove any navigation elements that might be included in the fetched content
             const duplicateNavs = tempContainer.querySelectorAll('nav');
             duplicateNavs.forEach(nav => {
@@ -64,15 +64,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         isMainNav = true;
                     }
                 });
-                
+
                 if (isMainNav) {
                     nav.parentNode.removeChild(nav);
                 }
             });
-            
+
             // Update the content with the cleaned HTML
             mainContentElement.innerHTML = tempContainer.innerHTML;
-            
+
             if (newTitle) {
                 document.title = newTitle;
             }
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('popstate', async (event) => {
         if (event.state && event.state.path) {
             loadContent(event.state.path, true);
-        } else if (!event.state && window.location.pathname !== '/') { 
+        } else if (!event.state && window.location.pathname !== '/') {
             // If there's no state from popstate (e.g. initial load, manual hash change, or back to a non-SPA page)
             // and we are not at the root, a full reload might be safest to ensure consistency.
             // However, avoid this for the very first page load at root if it has no state.
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.reload();
         }
     });
-    
+
     // Set up initial click handlers
     setupBackgroundNavigationLinks();
 }); 
