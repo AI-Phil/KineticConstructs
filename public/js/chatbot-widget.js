@@ -42,7 +42,7 @@ let CHAT_LOG_STORAGE_KEY;
 
 function renderChatLog() {
     if (!messagesContainer) {
-        console.error("[renderChatLog] messagesContainer is null! Cannot render.");
+        console.error("Error: Chat messages container not found. UI render failed.");
         return;
     }
     messagesContainer.innerHTML = '';
@@ -72,60 +72,14 @@ function addMessage(text, sender, isHTML = false, messageId = null) {
     }
 
     if (!messagesContainer) {
-        console.error("[addMessage] messagesContainer is null! Cannot append message.");
+        console.error("Error: Chat messages container not found. Cannot append message.");
         return;
     }
     messagesContainer.appendChild(messageElement);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-    // Intercept links in HTML messages
-    if (isHTML) {
-        const links = messageElement.querySelectorAll('a');
-        links.forEach(link => {
-            // Only intercept relative links or links to the same origin
-            if (link.hostname === window.location.hostname || !link.hostname) {
-                link.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    const url = this.href;
-                    console.log('Chatbot link clicked, dispatching backgroundNavigationRequest for:', url);
-                    const navEvent = new CustomEvent('backgroundNavigationRequest', {
-                        detail: { url: url },
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    document.dispatchEvent(navEvent);
-                });
-            }
-        });
-
-        // Make product recommendation cards clickable
-        const productCards = messageElement.querySelectorAll('.product-recommendation');
-        productCards.forEach(card => {
-            const titleLink = card.querySelector('h4 a');
-            if (titleLink) {
-                const url = titleLink.href;
-
-                // Add click event to the entire card
-                card.addEventListener('click', function (event) {
-                    // Only prevent default if it wasn't the link itself that was clicked
-                    if (event.target.tagName === 'A') {
-                        // Let the link's own click handler handle it
-                        return;
-                    }
-
-                    // For any other element in the card, manually trigger navigation
-                    event.preventDefault();
-                    console.log('Product card clicked, dispatching backgroundNavigationRequest for:', url);
-                    const navEvent = new CustomEvent('backgroundNavigationRequest', {
-                        detail: { url: url },
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    document.dispatchEvent(navEvent);
-                });
-            }
-        });
-    }
+    // We'll handle all clicks on product recommendations and links through delegation instead
+    // of attaching individual event listeners to each element
 }
 
 function clearChatHistory() {
@@ -154,16 +108,16 @@ function clearChatHistory() {
 function initializeChatbotConfig(config = {}) {
     // Prevent multiple initializations
     if (isWidgetInitialized) {
-        console.log("Chatbot widget already initialized");
+        // Silent return without logging - initialization is already done
         return;
     }
-    
+
     // Validate required configuration
     if (!config.chatbotType) {
         console.error('Chatbot initialization failed: chatbotType is required');
         return;
     }
-    
+
     // Set up configuration with reasonable defaults for missing values
     chatbotConfig = {
         chatbotType: config.chatbotType,
@@ -174,16 +128,16 @@ function initializeChatbotConfig(config = {}) {
             isHTML: true
         }
     };
-    
+
     // Set up API endpoints based on config
     CHATBOT_API_BASE_PATH = '/api/chatbot';
     CHATBOT_API_ENDPOINT = `${CHATBOT_API_BASE_PATH}/${chatbotConfig.chatbotType}`;
     CHATBOT_STATUS_ENDPOINT = `${CHATBOT_API_ENDPOINT}/status`;
     CHAT_LOG_STORAGE_KEY = `chatLog_${chatbotConfig.chatbotType}`;
-    
+
     // Mark as initialized
     isWidgetInitialized = true;
-    
+
     // Initialize chat with the new configuration
     initializeChat();
 }
@@ -199,7 +153,7 @@ function initializeChat() {
                     chatLog.push(chatbotConfig.introductoryMessage);
                 }
             } catch (e) {
-                console.error('[initializeChat] Error parsing chat log from localStorage:', e);
+                console.error('Error: Failed to parse chat history from storage. Starting fresh.');
                 chatLog = [chatbotConfig.introductoryMessage];
                 localStorage.removeItem(CHAT_LOG_STORAGE_KEY);
             }
@@ -209,7 +163,7 @@ function initializeChat() {
     } else {
         chatLog = [chatbotConfig.introductoryMessage];
     }
-    
+
     renderChatLog();
     saveChatLog();
 
@@ -282,8 +236,7 @@ function checkChatbotStatus() {
         .then(data => {
             chatbotEnabled = !!data.enabled;
             if (!chatbotEnabled) {
-                console.log('Chatbot is disabled:', data.message);
-                // Hide the entire chatbot UI when disabled
+                // Only log at debug level - disabled is an expected state
                 hideChatbotUI();
             } else {
                 // Show only the chatbot icon initially
@@ -304,7 +257,7 @@ function checkChatbotStatus() {
             }
         })
         .catch(error => {
-            console.error('Error checking chatbot status:', error);
+            console.error('Error: Chatbot service unavailable');
             chatbotEnabled = false;
             // Hide the entire chatbot UI on error
             hideChatbotUI();
@@ -320,9 +273,13 @@ function closeEventSource() {
 }
 
 function sendMessage() {
-    if (!chatInput) { console.error("sendMessage: chatInput is null"); return; }
+    if (!chatInput) {
+        console.error("Error: Chat input element not found");
+        return;
+    }
     if (!chatbotEnabled) {
-        console.warn("Cannot send message: chatbot is disabled");
+        // Log warning and display user-friendly message
+        console.warn("Chatbot service unavailable");
         addMessage("The chatbot service is currently unavailable. Please try again later.", 'bot', false);
         return;
     }
@@ -431,12 +388,12 @@ function sendMessage() {
                     }
                 }
             } catch (error) {
-                console.error('Error processing SSE message:', error, event.data);
+                console.error('Error: Failed to process streaming message');
             }
         };
 
         eventSource.onerror = function (error) {
-            console.error('SSE Error:', error);
+            console.error('Error: Streaming connection failed');
             eventSource.close();
             currentEventSource = null;
 
@@ -516,8 +473,8 @@ function sendMessage() {
                 saveChatLog();
             })
             .catch(error => {
-                console.error('Fetch error:', error);
-                const errorMsg = 'Error: Could not connect to the bot server. ' + error.message;
+                console.error('Error: Network connection failed');
+                const errorMsg = 'Error: Could not connect to the bot server. Please try again later.';
                 addMessage(errorMsg, 'bot', false);
                 chatLog.push({ text: errorMsg, sender: 'bot', isHTML: false });
                 saveChatLog();
@@ -559,7 +516,7 @@ function openChatWindow() {
 // --- Event Listeners and Initialization ---
 document.addEventListener('DOMContentLoaded', function () {
     if (!chatWindow || !chatToggle || !messagesContainer || !chatInput || !sendButton || !minimizeChatButton || !clearChatButton) {
-        console.error("Chatbot Widget Error: One or more essential DOM elements are missing. Ensure HTML structure is correct and IDs match.");
+        console.error("Error: Required chatbot UI elements not found. Please check HTML structure.");
         return;
     }
 
@@ -593,6 +550,67 @@ document.addEventListener('DOMContentLoaded', function () {
 
     clearChatButton.addEventListener('click', clearChatHistory);
 
+    // Delegated event handler for all product recommendations and links
+    if (messagesContainer) {
+        messagesContainer.addEventListener('click', function (e) {
+            // Handler for product recommendation cards (both article elements and .product-recommendation elements)
+            const productCard = e.target.closest('article') || e.target.closest('.product-recommendation');
+
+            if (productCard) {
+                // Find the first link in the card which should be the product link
+                const titleLink = productCard.querySelector('h4 a');
+
+                if (titleLink) {
+                    // If the click was directly on the link, handle it the same as the card click
+                    // to keep chat window open
+                    if (e.target === titleLink || titleLink.contains(e.target)) {
+                        e.preventDefault();
+                        const url = titleLink.href;
+
+                        // Dispatch background navigation event
+                        const navEvent = new CustomEvent('backgroundNavigationRequest', {
+                            detail: { url: url },
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        document.dispatchEvent(navEvent);
+                        return;
+                    }
+
+                    const url = titleLink.href;
+                    e.preventDefault();
+
+                    // Dispatch background navigation event
+                    const navEvent = new CustomEvent('backgroundNavigationRequest', {
+                        detail: { url: url },
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    document.dispatchEvent(navEvent);
+                }
+                return;
+            }
+
+            // Handler for all other links in the chat
+            const link = e.target.closest('a');
+            if (link && !e.defaultPrevented) {
+                // Only for same-origin links
+                if (link.hostname === window.location.hostname || !link.hostname) {
+                    e.preventDefault();
+                    const url = link.href;
+
+                    // Dispatch background navigation event
+                    const navEvent = new CustomEvent('backgroundNavigationRequest', {
+                        detail: { url: url },
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    document.dispatchEvent(navEvent);
+                }
+            }
+        });
+    }
+
     // Close SSE connection when page is unloaded
     window.addEventListener('beforeunload', closeEventSource);
 
@@ -618,6 +636,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 chatWindow.style.display = 'none';
             }
         }
+    });
+
+    // Add listener for backgroundNavigationRequest to ensure chat stays open
+    document.addEventListener('backgroundNavigationRequest', function (event) {
+        // Mark that we want to keep the chat open during navigation
+        // No action needed - the mainContentReloaded handler will keep chat open
     });
 
     // Check if we've already been initialized through a script tag before this runs
