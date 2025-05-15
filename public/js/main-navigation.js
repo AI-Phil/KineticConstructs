@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadContent(url, isPopState = false) {
-        console.log(`Loading content for URL: ${url}, popstate: ${isPopState}`);
+        // console.log(`Loading content for URL: ${url}, popstate: ${isPopState}`);
         try {
             const response = await fetch(url, {
                 headers: {
