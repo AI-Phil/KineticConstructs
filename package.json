@@ -22,6 +22,8 @@
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "glob": "^10.4.2",
+    "js-yaml": "^4.1.0",
+    "langflow-chatbot": "file:../langflow-chatbot/dist",
     "marked": "^15.0.7"
   },
   "devDependencies": {
