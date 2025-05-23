@@ -9,7 +9,9 @@ const express = require('express');
 const path = require('path');
 const { DataAPIClient } = require("@datastax/astra-db-ts");
 const { marked } = require('marked');
-const { LangflowClient } = require('@datastax/langflow-client');
+// const { LangflowProxyService } = require('langflow-chatbot/langflow-proxy');
+const yaml = require('js-yaml');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -19,88 +21,13 @@ const {
     ASTRA_DB_API_ENDPOINT,
     ASTRA_DB_TOKEN,
     ASTRA_DB_COLLECTION,
-    LANGFLOW_ENDPOINT,
-    LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID,
-    LANGFLOW_API_KEY
+    // LANGFLOW_PROXY_API_BASE_PATH
 } = process.env;
 
 if (!ASTRA_DB_API_ENDPOINT || !ASTRA_DB_TOKEN) {
     console.error("Error: ASTRA_DB_API_ENDPOINT and ASTRA_DB_TOKEN must be set in the .env file.");
     process.exit(1);
 }
-
-// Chatbot configuration
-const CHATBOT_API_BASE_PATH = '/api/chatbot';
-const chatbots = {
-    // Chatbots will be defined from environment variables during initialization
-};
-
-// Initialize Langflow client if endpoint is available
-let langflowClient = null;
-try {
-    if (LANGFLOW_ENDPOINT) {
-        console.log(`Initializing Langflow client with endpoint: ${LANGFLOW_ENDPOINT}`);
-        const clientConfig = {
-            baseUrl: LANGFLOW_ENDPOINT
-        };
-
-        if (LANGFLOW_API_KEY) {
-            console.log('Using API key for Langflow authentication');
-            clientConfig.apiKey = LANGFLOW_API_KEY;
-        } else {
-            console.log('No API key provided for Langflow');
-        }
-
-        langflowClient = new LangflowClient(clientConfig);
-        console.log('Langflow client initialized successfully.');
-
-        // Find and register all available chatbot types from environment variables
-        // Format: LANGFLOW_<TYPE>_FLOW_ID (e.g., LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID)
-        const chatbotEnvVars = Object.keys(process.env).filter(key =>
-            key.startsWith('LANGFLOW_') && key.endsWith('_FLOW_ID')
-        );
-
-        console.log(`Found ${chatbotEnvVars.length} potential chatbot flow IDs in environment variables`);
-
-        chatbotEnvVars.forEach(envVar => {
-            const flowId = process.env[envVar];
-            if (!flowId) return;
-
-            // Extract chatbot type from environment variable name
-            // Convert LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID to product-assistant
-            const typeMatch = envVar.match(/LANGFLOW_(.+)_FLOW_ID/);
-            if (!typeMatch || !typeMatch[1]) return;
-
-            const chatbotType = typeMatch[1]
-                .replace(/_/g, '-')
-                .toLowerCase();
-
-            console.log(`Registering chatbot type '${chatbotType}' with flow ID: ${flowId}`);
-
-            chatbots[chatbotType] = {
-                enabled: true,
-                flowId: flowId,
-                client: langflowClient
-            };
-
-            console.log(`Chatbot '${chatbotType}' enabled and ready.`);
-        });
-
-        if (Object.keys(chatbots).length === 0) {
-            console.warn('No chatbot flow IDs found in environment variables. No chatbots will be available.');
-        } else {
-            console.log(`Successfully registered ${Object.keys(chatbots).length} chatbots: ${Object.keys(chatbots).join(', ')}`);
-        }
-    } else {
-        console.warn('LANGFLOW_ENDPOINT not set. All chatbot functionality will be disabled.');
-    }
-} catch (error) {
-    console.error('Failed to initialize Langflow client:', error);
-}
-
-// Expose chatbot URL to templates without revealing implementation details
-// No longer needed since client-side code will use API endpoints directly
-// const productAssistantUrl = `${CHATBOT_API_BASE_PATH}/product-assistant`;
 
 // Collection names from environment variables
 const collectionName = ASTRA_DB_COLLECTION || 'products';
@@ -211,6 +138,14 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images/products', express.static(path.join(__dirname, 'public/images/products')));
 app.use(express.json());
+
+// // Langflow-Chatbot Static Assets
+// app.use('/static/LangflowChatbotPlugin.js', express.static(
+//     path.join(__dirname, 'node_modules/langflow-chatbot/plugins/LangflowChatbotPlugin.js')
+// ));
+// app.use('/static/langflow-chatbot.css', express.static(
+//     path.join(__dirname, 'node_modules/langflow-chatbot/styles/langflow-chatbot.css')
+// ));
 
 // Routes
 app.get('/', (req, res) => {
@@ -486,221 +421,73 @@ app.get('/api/document/:docId', async (req, res) => {
     }
 });
 
-// Chatbot API endpoints
-app.get(`${CHATBOT_API_BASE_PATH}/:botId/status`, (req, res) => {
-    const botId = req.params.botId;
-    const chatbot = chatbots[botId];
+// // --- Langflow-Chatbot Proxy Initialization ---
+// let langflowProxy;
+// let mainChatbotProfileInfoForEJS; // To pass to EJS templates globally
+// try {
+//     const chatbotYamlPath = path.resolve(process.cwd(), 'langflow-chatbot.yaml');
+//     if (!fs.existsSync(chatbotYamlPath)) {
+//         throw new Error(`langflow-chatbot.yaml not found at ${chatbotYamlPath}`);
+//     }
+//     const parsedChatbotYamlConfig = yaml.load(fs.readFileSync(chatbotYamlPath, 'utf8'));
+//     console.log("Successfully loaded langflow-chatbot.yaml");
+//     if (!parsedChatbotYamlConfig || !parsedChatbotYamlConfig.profiles || parsedChatbotYamlConfig.profiles.length === 0) {
+//         throw new Error("No profiles defined in langflow-chatbot.yaml or format is incorrect. Expected a top-level 'profiles' array.");
+//     }
+//     const firstProfile = parsedChatbotYamlConfig.profiles[0];
+//     if (!firstProfile || !firstProfile.profileId) {
+//         throw new Error("The first profile in langflow-chatbot.yaml is missing or lacks a profileId.");
+//     }
+//     mainChatbotProfileInfoForEJS = {
+//         profileId: firstProfile.profileId,
+//         widgetTitle: firstProfile.chatbot?.labels?.widgetTitle || "Chat with Us"
+//     };
+//     console.log(`Using chatbot profile with profileId '${mainChatbotProfileInfoForEJS.profileId}' as default for EJS context.`);
+//     const proxyInitConfig = {
+//         instanceConfigPath: chatbotYamlPath,
+//         proxyApiBasePath: LANGFLOW_PROXY_API_BASE_PATH
+//     };
+//     langflowProxy = new LangflowProxyService(proxyInitConfig);
+//     console.log("LangflowProxyService instance created.");
+// } catch (error) {
+//     console.error("CRITICAL - Failed to load langflow-chatbot.yaml or initialize LangflowProxyService instance:", error);
+//     process.exit(1);
+// }
+// // --- END Langflow-Chatbot Proxy Initialization ---
 
-    if (!chatbot) {
-        // Return 200 OK with disabled status instead of 404
-        // This allows the frontend to gracefully handle unavailable chatbots
-        return res.status(200).json({
-            enabled: false,
-            message: `Chatbot '${botId}' is currently unavailable`
-        });
-    }
+// // --- Setup app.locals for global EJS template data ---
+// app.locals.langflowProxyApiBasePath = LANGFLOW_PROXY_API_BASE_PATH;
+// if (mainChatbotProfileInfoForEJS) {
+//     app.locals.defaultChatbotProfileInfo = mainChatbotProfileInfoForEJS;
+// }
+// // --- END Setup app.locals ---
 
-    res.json({
-        enabled: chatbot.enabled,
-        message: chatbot.enabled ? `${botId} chatbot is operational` : `${botId} chatbot is currently unavailable`
-    });
-});
-
-// Test endpoint for Langflow client
-app.get('/api/test-langflow', async (req, res) => {
-    if (!langflowClient) {
-        return res.status(500).json({
-            error: 'Langflow client not initialized',
-            status: 'error'
-        });
-    }
-
-    try {
-        // Simple test to check if we can get the flows from Langflow
-        console.log('Testing Langflow client connection...');
-        const flows = await langflowClient.getFlows();
-        console.log('Langflow client test succeeded. Got flows:', flows.length);
-
-        // Check if our flow ID exists 
-        const flowExists = flows.some(flow => flow.id === LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID);
-
-        return res.json({
-            status: 'success',
-            message: 'Langflow client is working',
-            flowCount: flows.length,
-            flowIdExists: flowExists,
-            flowId: LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID
-        });
-    } catch (error) {
-        console.error('Error testing Langflow client:', error);
-        return res.status(500).json({
-            error: `Langflow client test failed: ${error.message}`,
-            status: 'error'
-        });
-    }
-});
-
-// Support both GET and POST for the streaming endpoint
-app.all(`${CHATBOT_API_BASE_PATH}/:botId`, async (req, res) => {
-    // Only allow GET and POST methods
-    if (req.method !== 'GET' && req.method !== 'POST') {
-        return res.status(405).json({
-            error: 'Method not allowed',
-            message: 'Only GET and POST methods are supported for this endpoint'
-        });
-    }
-
-    const botId = req.params.botId;
-    console.log(`Received ${req.method} request for chatbot '${botId}'`);
-
-    const chatbot = chatbots[botId];
-
-    if (!chatbot) {
-        console.warn(`Chatbot '${botId}' not found`);
-        return res.status(404).json({
-            error: `Chatbot '${botId}' not found`
-        });
-    }
-
-    if (!chatbot.enabled) {
-        console.warn(`Chatbot '${botId}' is disabled`);
-        return res.status(503).json({
-            error: `${botId} chatbot service is currently unavailable (disabled)`
-        });
-    }
-
-    if (!chatbot.client) {
-        console.warn(`Chatbot '${botId}' has no client`);
-        return res.status(503).json({
-            error: `${botId} chatbot service is currently unavailable (no client)`
-        });
-    }
-
-    // For GET requests, use query parameters; for POST, use body
-    const inputValue = req.method === 'GET' ?
-        req.query.input_value :
-        req.body.input_value;
-
-    const sessionId = (req.method === 'GET' ?
-        req.query.session_id :
-        req.body.session_id) || `session_${Date.now()}`;
-
-    const userId = (req.method === 'GET' ?
-        req.query.user_id :
-        req.body.user_id) || sessionId;
-
-    if (!inputValue && req.method === 'POST') {
-        return res.status(400).json({ error: 'Missing required field: input_value' });
-    }
-
-    // For GET without input_value, just return status info about the chatbot
-    if (!inputValue && req.method === 'GET' && !req.query.stream) {
-        return res.json({
-            botId: botId,
-            enabled: chatbot.enabled,
-            flowId: chatbot.flowId,
-            message: 'Chatbot is ready to use. Send a POST request with input_value to chat.'
-        });
-    }
-
-    console.log(`Processing ${req.method} message from user ${userId} in session ${sessionId}`);
-    console.log(`Message: "${inputValue}"`);
-
-    try {
-        // For streaming responses
-        if (req.query.stream === 'true') {
-            console.log(`Using streaming response for chatbot '${botId}'`);
-            res.setHeader('Content-Type', 'text/event-stream');
-            res.setHeader('Cache-Control', 'no-cache');
-            res.setHeader('Connection', 'keep-alive');
-
-            // Create the streaming response
-            console.log(`Creating streaming response with flowId: ${chatbot.flowId}`);
-            try {
-                // Use the correct flow().stream() method instead of runFlowStreaming
-                const stream = await chatbot.client.flow(chatbot.flowId).stream(inputValue, {
-                    input_type: 'chat',
-                    output_type: 'chat',
-                    session_id: sessionId,
-                    user_id: userId
-                });
-
-                console.log(`Stream created successfully for chatbot '${botId}'`);
-
-                // Process the ReadableStream
-                (async () => {
-                    try {
-                        for await (const event of stream) {
-                            // Send the event data to the client
-                            res.write(`data: ${JSON.stringify(event)}\n\n`);
-
-                            // End the response when the 'end' event is received
-                            if (event.event === 'end') {
-                                console.log(`Stream ended for chatbot '${botId}'`);
-                                res.end();
-                                break;
-                            }
-                        }
-                    } catch (error) {
-                        console.error(`Error processing stream for chatbot '${botId}':`, error);
-
-                        // Send error to the client
-                        const errorEvent = {
-                            event: 'error',
-                            data: {
-                                message: error.message || 'An error occurred while streaming the response'
-                            }
-                        };
-                        res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
-
-                        // End the response
-                        res.write(`data: ${JSON.stringify({ event: 'end' })}\n\n`);
-                        res.end();
-                    }
-                })();
-
-                // Handle client disconnect
-                req.on('close', () => {
-                    console.log(`Client disconnected from chatbot '${botId}' stream`);
-                    // No need to destroy the stream as it will be automatically cleaned up
-                    // when it goes out of scope
-                });
-            } catch (streamError) {
-                console.error(`Error creating stream for chatbot '${botId}':`, streamError);
-                res.write(`data: {"event": "error", "error": "Failed to create stream: ${streamError.message}"}\n\n`);
-                res.end();
-            }
-        } else {
-            // For non-streaming responses (batch mode)
-            console.log(`Using batch response for chatbot '${botId}'`);
-            console.log(`Creating batch response with flowId: ${chatbot.flowId}`);
-
-            try {
-                const response = await chatbot.client.flow(chatbot.flowId).run(inputValue, {
-                    input_type: 'chat',
-                    output_type: 'chat',
-                    session_id: sessionId,
-                    user_id: userId
-                });
-
-                console.log(`Batch response received for chatbot '${botId}'`);
-                res.json(response);
-            } catch (batchError) {
-                console.error(`Error with batch request for chatbot '${botId}':`, batchError);
-                res.status(500).json({
-                    error: 'Failed to process chatbot batch request',
-                    details: batchError.message
-                });
-            }
-        }
-    } catch (error) {
-        console.error(`Error running ${botId} flow:`, error);
-        res.status(500).json({
-            error: 'Failed to process chatbot request',
-            details: error.message
-        });
-    }
-});
+// // --- Langflow-Chatbot Proxy API Route ---
+// if (langflowProxy) {
+//     app.use(LANGFLOW_PROXY_API_BASE_PATH, async (req, res, next) => {
+//         const originalExpressReqUrl = req.url;
+//         req.url = req.originalUrl;
+//         try {
+//             await langflowProxy.handleRequest(req, res);
+//         } catch (proxyError) {
+//             console.error(`Error during LangflowProxyService handleRequest for ${req.method} ${req.originalUrl}:`, proxyError);
+//             if (!res.headersSent) {
+//                 res.status(500).json({ error: "Internal error in chatbot proxy." });
+//             } else if (!res.writableEnded) {
+//                 res.end();
+//             }
+//         } finally {
+//             req.url = originalExpressReqUrl;
+//         }
+//     });
+//     console.log(`Langflow-Chatbot proxy mounted at ${LANGFLOW_PROXY_API_BASE_PATH}`);
+// } else {
+//     console.error("LangflowProxyService instance (langflowProxy) is not initialized. Chatbot proxy route CANNOT be set up.");
+//     app.use(LANGFLOW_PROXY_API_BASE_PATH, (req, res) => {
+//         res.status(503).json({ error: "Chatbot service is currently unavailable. Please check server logs."});
+//     });
+// }
+// // --- END Langflow-Chatbot Proxy API Route ---
 
 // Server startup with database initialization
 initializeDbAndData().then(() => {

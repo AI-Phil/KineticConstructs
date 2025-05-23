@@ -1,51 +1,59 @@
-<%# Chatbot Interface - Always include the widget, client-side code will check status and disable if needed %>
-    <div id="chat-widget" class="chat-widget">
-        <div class="chat-header">
-            <h3>Product Assistant</h3>
-            <div class="chat-header-controls">
-                <button id="clear-chat-button-header" title="Clear chat history">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M17.65,6.35C16.2,4.9,14.21,4,12,4A8,8,0,0,0,4,12a8,8,0,0,0,8,8c3.73,0,6.84-2.55,7.73-6h-2.08c-.82,2.33-3.04,4-5.65,4a6,6,0,0,1-6-6,6,6,0,0,1,6-6c1.66,0,3.14.69,4.22,1.78L13,11h7V4L17.65,6.35Z" />
-                    </svg>
-                </button>
-                <button class="minimize-btn" id="minimize-chat">&#x2716;</button>
-            </div>
-        </div>
-        <div id="chat-messages"></div>
-        <div id="chat-input-area">
-            <input type="text" id="chat-input-text" placeholder="Type a message...">
-            <button id="chat-send-button">Send</button>
-        </div>
-    </div>
-    <button class="chat-toggle" id="chat-toggle">
-        <svg viewBox="0 0 24 24" width="24" height="24">
-            <path fill="currentColor"
-                d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" />
-        </svg>
-    </button>
+<!-- Chatbot Integration for Langflow -->
+<!-- This will initialize the chatbot for the "product-recommender" profile -->
 
-    <%# Load core and local CSS files %>
-    <link rel="stylesheet" href="/css/chatbot-widget.css">
-    <link rel="stylesheet" href="/css/chatbot-widget-local.css">
+<!-- Container for potential embedded mode. -->
+<!-- The plugin will use this if the "product-recommender" profile configuration indicates embedded mode. -->
+<!-- If the profile indicates floating mode, the plugin should manage its own UI and might hide/ignore this container. -->
+<div id="langflow-chatbot-container" style="height: 500px; max-width: 450px; border: 1px solid #eee; margin-top: 20px; overflow: hidden; display: block;">
+    <!-- Chatbot will be rendered here if embedded and profile config directs it -->
+</div>
+
+<%# Load CSS for the langflow-chatbot plugin %>
+<link rel="stylesheet" href="/static/langflow-chatbot.css">
     
-    <%# Load JavaScript %>
-    <script src="/js/chatbot-widget.js"></script>
-    <script>
-        // Initialize the chatbot once the JS file has loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            if (typeof window.initChatbot === 'function') {
-                window.initChatbot({
-                    chatbotType: "product-assistant",
-                    introductoryMessage: {
-                        text: "Hello! I'm your Product Assistant. How can I help you find the perfect product today?",
-                        sender: "bot",
-                        isHTML: true
-                    },
-                    persistChat: true
-                });
-            } else {
-                console.error("Chatbot initialization function not found. Make sure chatbot-widget.js is loaded properly.");
+<%# Load JavaScript for the langflow-chatbot plugin %>
+<script src="/static/LangflowChatbotPlugin.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const proxyApiBasePath = '<%= langflowProxyApiBasePath %>';
+        const chatbotProfileId = "product-recommender"; 
+
+        if (window.LangflowChatbotPlugin && typeof window.LangflowChatbotPlugin.init === 'function') {
+            try {
+                const pluginInitOptions = {
+                    profileId: chatbotProfileId,
+                    proxyApiBasePath: proxyApiBasePath,
+                    containerId: 'langflow-chatbot-container'
+                };
+
+                console.log(`Initializing LangflowChatbotPlugin for profile '${chatbotProfileId}' with options:`, pluginInitOptions);
+                const chatbotInstance = await window.LangflowChatbotPlugin.init(pluginInitOptions);
+                console.log(`LangflowChatbotPlugin for profile '${chatbotProfileId}' initialized successfully.`, chatbotInstance);
+
+                // Optional: Event listeners
+                // if (chatbotInstance && typeof chatbotInstance.on === 'function') {
+                //   chatbotInstance.on('sessionChanged', (newSessionId) => {
+                //     console.log('Chatbot (EJS) for "product-recommender": sessionChanged:', newSessionId);
+                //   });
+                // }
+
+            } catch (error) {
+                console.error(`Error initializing LangflowChatbotPlugin for profile '${chatbotProfileId}':`, error);
+                const errorDisplayContainer = document.getElementById('langflow-chatbot-container');
+                if (errorDisplayContainer) {
+                    errorDisplayContainer.innerHTML = `<p style="color: red; padding: 10px;">Failed to load chatbot ('${chatbotProfileId}'): ${error.message || String(error)}</p>`;
+                    errorDisplayContainer.style.display = 'block'; // Ensure error is visible
+                }
+                // else { alert(`Failed to initialize chatbot ('${desiredProfileId}'): ${error.message || String(error)}`); }
             }
-        });
-    </script>
+        } else {
+            console.error("LangflowChatbotPlugin.init not found. Ensure plugin script is loaded before this script runs.");
+            const container = document.getElementById('langflow-chatbot-container');
+            if (container) {
+                container.innerHTML = '<p style="color: red; padding: 10px;">Chatbot plugin core not loaded.</p>';
+                container.style.display = 'block'; // Ensure error is visible
+            }
+            // else { alert("Critical Error: Chatbot plugin core not loaded!"); }
+        }
+    });
+</script>

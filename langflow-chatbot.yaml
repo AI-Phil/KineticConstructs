@@ -1,0 +1,39 @@
+profiles:
+
+  - profileId: "product-recommender" 
+    server:
+      flowId: "kinetic-constructs-product-recommender" 
+      enableStream: true
+      datetimeFormat: relative
+    chatbot:
+      floatingWidget:
+        useFloating: true
+        floatPosition: "bottom-right"
+      labels:
+        widgetTitle: "Product Recommender"
+        botSender: "Assistant"
+        welcomeMessage: "How can I help you find the perfect product?"
+      template:
+        messageTemplate: |              
+          <div class="{{messageClasses}} message-block">
+            <div class="sender-name-display">{{sender}}</div>
+            <div class="message-bubble">
+              <span class="message-text-content">{{message}}</span>
+            </div>
+            <div class="message-datetime">{{datetime}}</div>
+          </div>
+        mainContainerTemplate: |        
+          <div class="chat-widget" style="display: flex; flex-direction: column; height: 100%;">
+            <div class="chat-widget-header" style="display: none;">
+              <span class="chat-widget-title-text"></span>
+            </div>
+            <div class="chat-messages">
+              <!-- Messages will appear here -->
+            </div>
+            <div id="chat-input-area-container" style="flex-shrink: 0;"></div>
+          </div>
+        inputAreaTemplate: |          
+          <div class="chat-input-area">
+            <input type="text" class="chat-input" placeholder="Type your message..." />
+            <button class="send-button">Send</button>
+          </div>
