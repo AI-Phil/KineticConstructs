@@ -418,10 +418,11 @@ Run this iteration:
 ```bash
 node server_3.js
 ```
-Open the application. You should now see two search boxes.
-*   Try a semantic query in the first box (e.g., "outdoor adventure").
-*   Then, add a specific keyword in the second box (e.g., "tent").
-*   Observe how the results change and combine both aspects.
+Open the application. You should now see two search boxes, allowing for more precise control over hybrid search:
+*   In the first (top) search box, enter a semantic query like "playset for a 12 year old".
+*   In the second (bottom) search box, enter a specific keyword to refine the search, such as "astronauts".
+*   (As shown in the example screenshot, this would perform a hybrid search for "playset for a 12 year old" with an additional emphasis on the keyword "astronauts".)
+*   Experiment by using only the semantic query, only the keyword query, or both. Observe how the `$hybrid` operator in Astra DB combines these, or how a pure `$vectorize` search (if only semantic query is used) behaves. You can also still use the category and tag filters in conjunction with these search inputs.
 
 ![Application Advanced Hybrid Search with server_3.js](./docs/images/app-advanced-hybrid-search.png)
 
@@ -429,26 +430,24 @@ Stop the server (Ctrl+C).
 
 ## 🎉 Workshop Complete!
 
-Congratulations! You've successfully modernized a Node.js application by integrating powerful AI search capabilities using DataStax Astra DB and Langflow.
+Congratulations! You've successfully modernized a Node.js application by integrating powerful AI search capabilities using DataStax Astra DB's Data API.
 
 You've learned how to:
-*   Set up Astra DB as a vector database and configure OpenAI integration.
+*   Set up Astra DB as a vector database and configure OpenAI integration for embedding generation.
 *   Use the Astra DB Data API for:
     *   Basic keyword filtering.
-    *   Semantic vector search with `$vectorize`.
-    *   Hybrid search combining keywords and vectors with `$hybrid` and `findAndRerank`.
-    *   Advanced hybrid search with separate explicit semantic and lexical inputs.
-*   Understand the concepts of embeddings and semantic search.
-*   Build an AI search flow visually using Langflow, including configuring the `AstraDBRetriever`.
-*   Integrate a Node.js application with a Langflow API endpoint.
+    *   Semantic vector search with the `$vectorize` operator.
+    *   Hybrid search combining keywords and vectors using the `$hybrid` operator and the `findAndRerank` method.
+    *   Advanced hybrid search with separate explicit semantic and lexical inputs within the `$hybrid` operator.
+*   Understand the concepts of vector embeddings and their role in semantic search.
 
-This demonstrates how you can rapidly build and deploy sophisticated AI features with modern, developer-friendly tools.
+This demonstrates how you can rapidly build and deploy sophisticated AI search features directly into your application using Astra DB.
 
 **Next Steps:**
-*   Enhance your Langflow flow (add filtering inputs, try different components or models).
-*   Dive deeper into the Astra DB Data API documentation.
-*   Experiment with different embedding models in Astra DB and Langflow.
-*   Implement robust error handling and UI feedback for the Langflow integration.
-*   Deploy your application and Langflow flow to production!
+*   Dive deeper into the DataStax Astra DB Data API documentation to explore more advanced features and operators.
+*   Experiment with different data models and indexing strategies in Astra DB to optimize for various search scenarios.
+*   Consider how you might implement more complex query understanding or intent detection before forming your Data API queries.
+*   Implement robust error handling and more detailed user feedback for the search interactions in your application.
+*   Deploy your enhanced application!
 
 Thanks for participating!
