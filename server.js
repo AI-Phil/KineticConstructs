@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./logger.js'); // Configure logging levels first
 
 // Log environment configuration status
 console.log("Dotenv loaded.");
@@ -9,9 +10,7 @@ const express = require('express');
 const path = require('path');
 const { DataAPIClient } = require("@datastax/astra-db-ts");
 const { marked } = require('marked');
-// const { LangflowProxyService } = require('langflow-chatbot/langflow-proxy');
-const yaml = require('js-yaml');
-const fs = require('fs');
+const { LangflowProxyService } = require('langflow-chatbot/dist/langflow-proxy');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -21,16 +20,13 @@ const {
     ASTRA_DB_API_ENDPOINT,
     ASTRA_DB_TOKEN,
     ASTRA_DB_COLLECTION,
-    // LANGFLOW_PROXY_API_BASE_PATH
+    LANGFLOW_ENDPOINT_URL,
 } = process.env;
 
 if (!ASTRA_DB_API_ENDPOINT || !ASTRA_DB_TOKEN) {
     console.error("Error: ASTRA_DB_API_ENDPOINT and ASTRA_DB_TOKEN must be set in the .env file.");
     process.exit(1);
 }
-
-// Collection names from environment variables
-const collectionName = ASTRA_DB_COLLECTION || 'products';
 
 let db;
 let productCollection;
@@ -135,17 +131,19 @@ async function initializeDbAndData() {
 // Express configuration
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// Langflow-Chatbot Static Assets
+app.use('/static/LangflowChatbotPlugin.js', express.static(
+    path.join(__dirname, 'node_modules/langflow-chatbot/dist/plugins/LangflowChatbotPlugin.js')
+));
+app.use('/static/langflow-chatbot.css', express.static(
+    path.join(__dirname, 'node_modules/langflow-chatbot/dist/styles/langflow-chatbot.css')
+));
+
+// General static assets and JSON parser
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images/products', express.static(path.join(__dirname, 'public/images/products')));
 app.use(express.json());
-
-// // Langflow-Chatbot Static Assets
-// app.use('/static/LangflowChatbotPlugin.js', express.static(
-//     path.join(__dirname, 'node_modules/langflow-chatbot/plugins/LangflowChatbotPlugin.js')
-// ));
-// app.use('/static/langflow-chatbot.css', express.static(
-//     path.join(__dirname, 'node_modules/langflow-chatbot/styles/langflow-chatbot.css')
-// ));
 
 // Routes
 app.get('/', (req, res) => {
@@ -421,73 +419,22 @@ app.get('/api/document/:docId', async (req, res) => {
     }
 });
 
-// // --- Langflow-Chatbot Proxy Initialization ---
-// let langflowProxy;
-// let mainChatbotProfileInfoForEJS; // To pass to EJS templates globally
-// try {
-//     const chatbotYamlPath = path.resolve(process.cwd(), 'langflow-chatbot.yaml');
-//     if (!fs.existsSync(chatbotYamlPath)) {
-//         throw new Error(`langflow-chatbot.yaml not found at ${chatbotYamlPath}`);
-//     }
-//     const parsedChatbotYamlConfig = yaml.load(fs.readFileSync(chatbotYamlPath, 'utf8'));
-//     console.log("Successfully loaded langflow-chatbot.yaml");
-//     if (!parsedChatbotYamlConfig || !parsedChatbotYamlConfig.profiles || parsedChatbotYamlConfig.profiles.length === 0) {
-//         throw new Error("No profiles defined in langflow-chatbot.yaml or format is incorrect. Expected a top-level 'profiles' array.");
-//     }
-//     const firstProfile = parsedChatbotYamlConfig.profiles[0];
-//     if (!firstProfile || !firstProfile.profileId) {
-//         throw new Error("The first profile in langflow-chatbot.yaml is missing or lacks a profileId.");
-//     }
-//     mainChatbotProfileInfoForEJS = {
-//         profileId: firstProfile.profileId,
-//         widgetTitle: firstProfile.chatbot?.labels?.widgetTitle || "Chat with Us"
-//     };
-//     console.log(`Using chatbot profile with profileId '${mainChatbotProfileInfoForEJS.profileId}' as default for EJS context.`);
-//     const proxyInitConfig = {
-//         instanceConfigPath: chatbotYamlPath,
-//         proxyApiBasePath: LANGFLOW_PROXY_API_BASE_PATH
-//     };
-//     langflowProxy = new LangflowProxyService(proxyInitConfig);
-//     console.log("LangflowProxyService instance created.");
-// } catch (error) {
-//     console.error("CRITICAL - Failed to load langflow-chatbot.yaml or initialize LangflowProxyService instance:", error);
-//     process.exit(1);
-// }
-// // --- END Langflow-Chatbot Proxy Initialization ---
+// --- Langflow-Chatbot Proxy ---
+const LANGFLOW_PROXY_API_BASE_PATH = '/api/langflow';
+app.locals.langflowProxyApiBasePath = '';
+let langflowProxy;
+if (LANGFLOW_ENDPOINT_URL) {
+    app.locals.langflowProxyApiBasePath = LANGFLOW_PROXY_API_BASE_PATH;
 
-// // --- Setup app.locals for global EJS template data ---
-// app.locals.langflowProxyApiBasePath = LANGFLOW_PROXY_API_BASE_PATH;
-// if (mainChatbotProfileInfoForEJS) {
-//     app.locals.defaultChatbotProfileInfo = mainChatbotProfileInfoForEJS;
-// }
-// // --- END Setup app.locals ---
+    langflowProxy = new LangflowProxyService({
+        instanceConfigPath: './langflow-chatbot.yaml',
+        proxyApiBasePath: LANGFLOW_PROXY_API_BASE_PATH,
+      });
 
-// // --- Langflow-Chatbot Proxy API Route ---
-// if (langflowProxy) {
-//     app.use(LANGFLOW_PROXY_API_BASE_PATH, async (req, res, next) => {
-//         const originalExpressReqUrl = req.url;
-//         req.url = req.originalUrl;
-//         try {
-//             await langflowProxy.handleRequest(req, res);
-//         } catch (proxyError) {
-//             console.error(`Error during LangflowProxyService handleRequest for ${req.method} ${req.originalUrl}:`, proxyError);
-//             if (!res.headersSent) {
-//                 res.status(500).json({ error: "Internal error in chatbot proxy." });
-//             } else if (!res.writableEnded) {
-//                 res.end();
-//             }
-//         } finally {
-//             req.url = originalExpressReqUrl;
-//         }
-//     });
-//     console.log(`Langflow-Chatbot proxy mounted at ${LANGFLOW_PROXY_API_BASE_PATH}`);
-// } else {
-//     console.error("LangflowProxyService instance (langflowProxy) is not initialized. Chatbot proxy route CANNOT be set up.");
-//     app.use(LANGFLOW_PROXY_API_BASE_PATH, (req, res) => {
-//         res.status(503).json({ error: "Chatbot service is currently unavailable. Please check server logs."});
-//     });
-// }
-// // --- END Langflow-Chatbot Proxy API Route ---
+      app.use(LANGFLOW_PROXY_API_BASE_PATH, async (req, res, next) => {
+        await langflowProxy.handleRequest(req, res);
+    });
+}
 
 // Server startup with database initialization
 initializeDbAndData().then(() => {

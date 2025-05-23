@@ -24,7 +24,7 @@ profiles:
           </div>
         mainContainerTemplate: |        
           <div class="chat-widget" style="display: flex; flex-direction: column; height: 100%;">
-            <div class="chat-widget-header" style="display: none;">
+            <div id="chat-widget-header-container" class="chat-widget-header" style="display: none;">
               <span class="chat-widget-title-text"></span>
             </div>
             <div class="chat-messages">
