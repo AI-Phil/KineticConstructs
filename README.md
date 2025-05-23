@@ -273,11 +273,11 @@ Run the second iteration:
 ```bash
 node server_1.js
 ```
-Open the application. Use the main search box. Try searching for concepts:
-*   "something warm for winter"
-*   "stay dry in the rain"
-*   "gear for climbing mountains"
-Notice how the results relate semantically. Combine this with the filters.
+Open the application. Use the main search box. Try searching for concepts like:
+*   "playset for a 12 year old" (as shown in the example screenshot)
+*   "robot that can be programmed"
+*   "creative building toys for young children"
+Notice how the results relate semantically to your query. You can also still combine these semantic searches with the category and tag filters.
 
 ![Application Vector Search with server_1.js](./docs/images/app-vector-search.png)
 
