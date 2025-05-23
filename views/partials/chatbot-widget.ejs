@@ -1,59 +1,88 @@
 <!-- Chatbot Integration for Langflow -->
-<!-- This will initialize the chatbot for the "product-recommender" profile -->
 
-<!-- Container for potential embedded mode. -->
-<!-- The plugin will use this if the "product-recommender" profile configuration indicates embedded mode. -->
-<!-- If the profile indicates floating mode, the plugin should manage its own UI and might hide/ignore this container. -->
 <div id="langflow-chatbot-container" style="height: 500px; max-width: 450px; border: 1px solid #eee; margin-top: 20px; overflow: hidden; display: block;">
     <!-- Chatbot will be rendered here if embedded and profile config directs it -->
 </div>
 
 <%# Load CSS for the langflow-chatbot plugin %>
 <link rel="stylesheet" href="/static/langflow-chatbot.css">
-    
-<%# Load JavaScript for the langflow-chatbot plugin %>
+<!-- <link rel="stylesheet" href="/static/css/chatbot-widget.css"> %> <!-- TODO: Removing old base styles -->
+<!-- <link rel="stylesheet" href="/static/css/chatbot-widget-local.css"> %> <!-- TODO: Removing old local styles -->
+<link rel="stylesheet" href="/css/new-chatbot-widget.css"> <%# Load new simplified widget styles %>
+
+<% if (langflowProxyApiBasePath) { %>
+<script type="module" src="/js/session.js"></script>
 <script src="/static/LangflowChatbotPlugin.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', async () => {
-        const proxyApiBasePath = '<%= langflowProxyApiBasePath %>';
-        const chatbotProfileId = "product-recommender"; 
+<script type="module">
+    import { getCookie, setCookie, generateUUID } from '/js/session.js';
 
-        if (window.LangflowChatbotPlugin && typeof window.LangflowChatbotPlugin.init === 'function') {
-            try {
-                const pluginInitOptions = {
-                    profileId: chatbotProfileId,
-                    proxyApiBasePath: proxyApiBasePath,
-                    containerId: 'langflow-chatbot-container'
-                };
+    const CHATBOT_PROFILE_ID = "product-recommender";
+    const CHAT_SESSION_COOKIE_NAME = "chatSessionId";
+    const CHAT_SESSION_COOKIE_DAYS = 7;
 
-                console.log(`Initializing LangflowChatbotPlugin for profile '${chatbotProfileId}' with options:`, pluginInitOptions);
-                const chatbotInstance = await window.LangflowChatbotPlugin.init(pluginInitOptions);
-                console.log(`LangflowChatbotPlugin for profile '${chatbotProfileId}' initialized successfully.`, chatbotInstance);
+    function manageChatSessionId() {
+        let sessionId = getCookie(CHAT_SESSION_COOKIE_NAME);
+        if (!sessionId) {
+            sessionId = generateUUID();
+            setCookie(CHAT_SESSION_COOKIE_NAME, sessionId, CHAT_SESSION_COOKIE_DAYS);
+            console.log(`New chatSessionId generated: ${sessionId}`);
+        } else {
+            console.log(`Using existing chatSessionId: ${sessionId}`);
+        }
+        return sessionId;
+    }
 
-                // Optional: Event listeners
-                // if (chatbotInstance && typeof chatbotInstance.on === 'function') {
-                //   chatbotInstance.on('sessionChanged', (newSessionId) => {
-                //     console.log('Chatbot (EJS) for "product-recommender": sessionChanged:', newSessionId);
-                //   });
-                // }
+    async function initChatbot(proxyApiBasePath, sessionId) {
+        const pluginInitOptions = {
+            profileId: CHATBOT_PROFILE_ID,
+            proxyApiBasePath: proxyApiBasePath,
+            containerId: 'langflow-chatbot-container',
+            sessionId: sessionId
+        };
+        console.log(`Initializing LangflowChatbotPlugin for profile '${CHATBOT_PROFILE_ID}' with session '${sessionId}'.`);
+        const chatbotInstance = await window.LangflowChatbotPlugin.init(pluginInitOptions);
+        console.log(`LangflowChatbotPlugin for profile '${CHATBOT_PROFILE_ID}' (session: ${sessionId}) initialized.`);
+        return chatbotInstance;
+    }
 
-            } catch (error) {
-                console.error(`Error initializing LangflowChatbotPlugin for profile '${chatbotProfileId}':`, error);
-                const errorDisplayContainer = document.getElementById('langflow-chatbot-container');
-                if (errorDisplayContainer) {
-                    errorDisplayContainer.innerHTML = `<p style="color: red; padding: 10px;">Failed to load chatbot ('${chatbotProfileId}'): ${error.message || String(error)}</p>`;
-                    errorDisplayContainer.style.display = 'block'; // Ensure error is visible
-                }
-                // else { alert(`Failed to initialize chatbot ('${desiredProfileId}'): ${error.message || String(error)}`); }
+    function setupChatResetListener(chatbotInstance, onResetCallback) {
+        if (chatbotInstance && chatbotInstance.widgetInstance && chatbotInstance.widgetInstance.getPanelElement) {
+            const internalWidget = chatbotInstance.widgetInstance;
+            const widgetElementForDomEvent = internalWidget.getPanelElement();
+
+            if (widgetElementForDomEvent) {
+                widgetElementForDomEvent.addEventListener('chatReset', async () => {
+                    console.log(`Chatbot: 'chatReset' event received for profile "${CHATBOT_PROFILE_ID}".`);
+                    await onResetCallback();
+                });
+                console.log(`Chatbot: Attached 'chatReset' listener for profile "${CHATBOT_PROFILE_ID}".`);
+            } else {
+                console.warn(`Chatbot (EJS) for "${CHATBOT_PROFILE_ID}": Could not get panel element. Cannot attach 'chatReset' listener.`);
             }
         } else {
-            console.error("LangflowChatbotPlugin.init not found. Ensure plugin script is loaded before this script runs.");
-            const container = document.getElementById('langflow-chatbot-container');
-            if (container) {
-                container.innerHTML = '<p style="color: red; padding: 10px;">Chatbot plugin core not loaded.</p>';
-                container.style.display = 'block'; // Ensure error is visible
-            }
-            // else { alert("Critical Error: Chatbot plugin core not loaded!"); }
+            console.warn(`Chatbot (EJS) for "${CHATBOT_PROFILE_ID}": Chatbot instance, widgetInstance, or getPanelElement not found. Cannot attach 'chatReset' listener.`);
         }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const proxyApiBasePath = '<%= langflowProxyApiBasePath %>';
+        let currentChatSessionId = manageChatSessionId();
+
+        const handleChatReset = async () => {
+            const newChatSessionId = generateUUID();
+            setCookie(CHAT_SESSION_COOKIE_NAME, newChatSessionId, CHAT_SESSION_COOKIE_DAYS);
+            console.log(`Generated new chatSessionId after reset: ${newChatSessionId}`);
+            currentChatSessionId = newChatSessionId;
+            console.log(`Re-initializing chatbot with new session ID: ${newChatSessionId}`);
+            await initializeAndRunChatbot(proxyApiBasePath, currentChatSessionId);
+        };
+        
+        const initializeAndRunChatbot = async (apiPath, sessionId) => {
+            const chatbotInstance = await initChatbot(apiPath, sessionId);
+            setupChatResetListener(chatbotInstance, handleChatReset);
+        };
+
+        await initializeAndRunChatbot(proxyApiBasePath, currentChatSessionId);
     });
 </script>
+<% } %>
