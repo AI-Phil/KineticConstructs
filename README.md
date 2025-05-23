@@ -248,15 +248,18 @@ const semanticQuery = req.query.q; // Text search query
 
 const options = {};
 if (semanticQuery) {
+    // This log appears if a semantic query is entered
     console.log(`Adding vector search options for: \"${semanticQuery}\"`);
     options.sort = { $vectorize: semanticQuery }; // Key change: Use $vectorize!
     options.limit = 25; // Limit results
     // options.includeSimilarity = true; // Optionally include similarity score
 }
 
+// The following console.log statements are part of the try block executing the search
 console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
 const cursor = await productCollection.find(filter, options);
 products = await cursor.toArray();
+console.log(`Fetched ${products.length} products.`); // Reflects the actual number of products retrieved
 ```
 The EJS template (`views/search.ejs`) is also updated to enable the semantic search input field by passing `semanticSearchEnabled: true`.
 
