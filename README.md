@@ -176,10 +176,10 @@ You should see the product catalog web page with search and filtering options. T
 **How Basic Filtering Works (`server.js`):**
 This initial version demonstrates basic product search using DataStax Astra DB's Data API. The code shows how to search our ConstructoBots, LogicLeaps, and other product lines using MongoDB-style queries. We use the `@datastax/astra-db-ts` client library. The `collection.find()` method accepts a `filter` object. We dynamically build this filter based on user selections for product family, type, and tags.
 
-For example:
-*   All ConstructoBots wheeled robots: `{ family: "ConstructoBots", product_type: "Wheeled Robots" }`
-*   Products with specific tags: `{ tags: { $all: ["coding", "python"] } }`
-*   Combine both: `{ $and: [{ family: "ConstructoBots" }, { tags: { $all: ["coding", "python"] } }] }`
+For example, if a user filters by:
+*   The **CreatiSpark** family: The filter would be `{ family: "CreatiSpark" }`.
+*   The tag **intermediate**: The filter would be `{ tags: { $all: ["intermediate"] } }`.
+*   Both the **CreatiSpark** family AND the tag **intermediate** (as shown in the example screenshot): The `filterConditions` array would contain both conditions, leading to a combined filter: `{ $and: [{ family: "CreatiSpark" }, { tags: { $all: ["intermediate"] } }] }`.
 
 **Code Highlights (`server.js` - `/search` route):**
 ```javascript
