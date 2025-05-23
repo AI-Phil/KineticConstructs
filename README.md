@@ -204,18 +204,26 @@ if (requestedTags.length > 0) {
 
 let filter = {};
 if (filterConditions.length > 1) {
-    filter = { $and: filterConditions }; // Combine multiple conditions
+    filter = { $and: filterConditions };
 } else if (filterConditions.length === 1) {
     filter = filterConditions[0];
 }
 
-// For this basic version, options object is empty
+// For this basic version, the options object passed to find() is empty.
 let options = {}; 
+let products = [];
 
-console.log(`Querying products with filter: ${JSON.stringify(filter)}`);
-const cursor = await productCollection.find(filter, options);
-products = await cursor.toArray();
-console.log(`find returned ${products.length} results.`);
+if (productCollection) { // Assuming productCollection is initialized
+    try {
+        console.log(`Querying products with filter: ${JSON.stringify(filter)} and options: ${JSON.stringify(options)}`);
+        const cursor = await productCollection.find(filter, options);
+        products = await cursor.toArray();
+        console.log(`Fetched ${products.length} products.`);
+    } catch (e) {
+        console.error("Error fetching products:", e);
+        // Handle error appropriately
+    }
+}
 ```
 
 **Observe and Understand:**
