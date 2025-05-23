@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./logger.js'); // Configure logging levels first
 
 // Log environment configuration status
 console.log("Dotenv loaded.");
