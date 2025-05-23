@@ -332,7 +332,11 @@ Run the third iteration:
 ```bash
 node server_2.js
 ```
-Open the application. Try searches combining concepts and keywords and compare the results to the pure vector search.
+Open the application. With hybrid search, the system now considers both semantic meaning and keyword relevance for a single search query. Try searches like:
+*   "playset for a 12 year old" (as shown in the example screenshot)
+*   "programmable robot with wheels"
+*   "beginner electronic kits for learning"
+Observe how the results are reranked by Astra DB considering both aspects. You can still combine this with the category and tag filters.
 
 ![Application Hybrid Search with server_2.js](./docs/images/app-hybrid-search.png)
 
