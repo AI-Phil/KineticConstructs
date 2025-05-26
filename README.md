@@ -130,7 +130,7 @@ Let's use GitHub Codespaces for a seamless development experience. It sets up ev
     # Get these from your Astra DB database dashboard
 
     ASTRA_DB_API_ENDPOINT='YOUR_ASTRA_DB_API_ENDPOINT'
-    ASTRA_DB_TOKEN='YOUR_ASTRA_DB_APPLICATION_TOKEN'
+    ASTRA_DB_APPLICATION_TOKEN='YOUR_ASTRA_DB_APPLICATION_TOKEN'
     ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME='api_key_name_from_integrations_page'
 
     # Optional: Specify collection names if different from defaults
