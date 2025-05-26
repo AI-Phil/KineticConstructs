@@ -10,7 +10,7 @@ const express = require('express');
 const path = require('path');
 const { DataAPIClient } = require("@datastax/astra-db-ts");
 const { marked } = require('marked');
-const { LangflowProxyService } = require('langflow-chatbot/dist/langflow-proxy');
+const { LangflowProxyService } = require('langflow-chatbot');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -133,12 +133,8 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Langflow-Chatbot Static Assets
-app.use('/static/LangflowChatbotPlugin.js', express.static(
-    path.join(__dirname, 'node_modules/langflow-chatbot/dist/plugins/LangflowChatbotPlugin.js')
-));
-app.use('/static/langflow-chatbot.css', express.static(
-    path.join(__dirname, 'node_modules/langflow-chatbot/dist/styles/langflow-chatbot.css')
-));
+app.use('/static/langflow-chatbot-plugin.js', express.static(require.resolve('langflow-chatbot/plugin')));
+app.use('/static/langflow-chatbot.css', express.static(require.resolve('langflow-chatbot/styles')));
 
 // General static assets and JSON parser
 app.use(express.static(path.join(__dirname, 'public')));

@@ -6,13 +6,11 @@
 
 <%# Load CSS for the langflow-chatbot plugin %>
 <link rel="stylesheet" href="/static/langflow-chatbot.css">
-<!-- <link rel="stylesheet" href="/static/css/chatbot-widget.css"> %> <!-- TODO: Removing old base styles -->
-<!-- <link rel="stylesheet" href="/static/css/chatbot-widget-local.css"> %> <!-- TODO: Removing old local styles -->
-<link rel="stylesheet" href="/css/new-chatbot-widget.css"> <%# Load new simplified widget styles %>
+<link rel="stylesheet" href="/css/chatbot-widget.css"> <%# Load new simplified widget styles %>
 
 <% if (langflowProxyApiBasePath) { %>
 <script type="module" src="/js/session.js"></script>
-<script src="/static/LangflowChatbotPlugin.js"></script>
+<script src="/static/langflow-chatbot-plugin.js"></script>
 <script type="module">
     import { getCookie, setCookie, generateUUID } from '/js/session.js';
 
@@ -37,7 +35,8 @@
             profileId: CHATBOT_PROFILE_ID,
             proxyApiBasePath: proxyApiBasePath,
             containerId: 'langflow-chatbot-container',
-            sessionId: sessionId
+            sessionId: sessionId,
+            mode: 'floating',
         };
         console.log(`Initializing LangflowChatbotPlugin for profile '${CHATBOT_PROFILE_ID}' with session '${sessionId}'.`);
         const chatbotInstance = await window.LangflowChatbotPlugin.init(pluginInitOptions);
@@ -80,9 +79,59 @@
         const initializeAndRunChatbot = async (apiPath, sessionId) => {
             const chatbotInstance = await initChatbot(apiPath, sessionId);
             setupChatResetListener(chatbotInstance, handleChatReset);
+            setupProductRecommendationClickHandler(chatbotInstance);
         };
 
         await initializeAndRunChatbot(proxyApiBasePath, currentChatSessionId);
     });
+
+    function setupProductRecommendationClickHandler(chatbotInstance) {
+        // Get the container element from the chatbot instance
+        const container = chatbotInstance.getContainerElement ? chatbotInstance.getContainerElement() : null;
+        
+        // Listen on document level to catch all clicks, then filter for chatbot-related ones
+        document.addEventListener('click', function(e) {
+            // Handler for product recommendation cards (both article elements and .product-recommendation elements)
+            const productCard = e.target.closest('article') || e.target.closest('.product-recommendation');
+
+            if (productCard) {
+                // Find the first link in the card which should be the product link
+                const titleLink = productCard.querySelector('h4 a') || productCard.querySelector('a');
+
+                if (titleLink) {
+                    // Prevent default link behavior and handle all clicks on the card consistently
+                    e.preventDefault();
+                    const url = titleLink.href;
+
+                    // Dispatch background navigation event
+                    const navEvent = new CustomEvent('backgroundNavigationRequest', {
+                        detail: { url: url },
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    document.dispatchEvent(navEvent);
+                }
+                return;
+            }
+
+            // Handler for all other links in the chat
+            const link = e.target.closest('a');
+            if (link && !e.defaultPrevented) {
+                // Only for same-origin links
+                if (link.hostname === window.location.hostname || !link.hostname) {
+                    e.preventDefault();
+                    const url = link.href;
+
+                    // Dispatch background navigation event
+                    const navEvent = new CustomEvent('backgroundNavigationRequest', {
+                        detail: { url: url },
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    document.dispatchEvent(navEvent);
+                }
+            }
+        });
+    }
 </script>
 <% } %>

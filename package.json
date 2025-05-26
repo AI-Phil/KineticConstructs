@@ -22,7 +22,7 @@
     "express": "^4.19.2",
     "glob": "^10.4.2",
     "js-yaml": "^4.1.0",
-    "langflow-chatbot": "^0.2.0",
+    "langflow-chatbot": "^0.3.0",
     "marked": "^15.0.7"
   },
   "devDependencies": {
