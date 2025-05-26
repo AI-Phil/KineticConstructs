@@ -126,26 +126,24 @@ Let's use GitHub Codespaces for a seamless development experience. It sets up ev
 
     Your `.env` file should look something like this (the paths for Langflow assume your repository is named `KineticConstructs` and is in the standard Codespaces workspace directory):
     ```dotenv
-    # OpenAI Settings
-    OPENAI_API_KEY="sk-..."
+    # Astra DB Credentials - Required
+    # Get these from your Astra DB database dashboard
 
-    # Astra DB Settings
-    ASTRA_DB_API_ENDPOINT="https://YOUR_ENDPOINT.apps.astra.datastax.com"
-    ASTRA_DB_APPLICATION_TOKEN="AstraCS:..."
-    # This is the name you gave to your OpenAI API Key Credential in the Astra DB Integrations page
-    # (e.g., WorkshopOpenAIKey, as suggested in Step 3.3)
-    ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME="api_key_name_from_integrations_page"
+    ASTRA_DB_API_ENDPOINT='YOUR_ASTRA_DB_API_ENDPOINT'
+    ASTRA_DB_TOKEN='YOUR_ASTRA_DB_APPLICATION_TOKEN'
+    ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME='api_key_name_from_integrations_page'
 
-    # --- Langflow Configuration ---
-    # Directory for logs, database, etc. Needs to be writable by the user running langflow.
-    LANGFLOW_CONFIG_DIR="/workspaces/KineticConstructs/.langflow_config"
+    # Optional: Specify collection names if different from defaults
+    # ASTRA_DB_PRODUCT_COLLECTION='products'
+    # ASTRA_DB_DOCUMENT_COLLECTION='documents'
 
-    # Specifies the database file location within the config dir
-    # Note the four slashes for an absolute path with sqlite:///
-    LANGFLOW_DATABASE_URL="sqlite:////workspaces/KineticConstructs/.langflow_config/langflow.db"
+    OPENAI_API_KEY='YOUR_OPENAI_API_KEY'
 
-    # Explicitly set the log file path
-    LANGFLOW_LOG_FILE="/workspaces/KineticConstructs/.langflow_config/langflow.log"
+    # Chatbot Configuration - comment in to for chatbot
+    # Replace with your Langflow server details and credentials
+    LANGFLOW_ENDPOINT='http://127.0.0.1:7860'
+    #LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID='YOUR_FLOW_ID'
+    #LANGFLOW_API_KEY='YOUR_LANGFLOW_API_KEY'  # Optional, only required if your Langflow instance uses API key authentication 
     ```
 
 8.  **Load Data into Astra DB:** Let's populate your database with sample product data. Open a terminal in your Codespace (Terminal -> New Terminal or Ctrl+`).
