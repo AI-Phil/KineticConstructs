@@ -1,0 +1,12 @@
+docker buildx build --platform linux/amd64 -t dieterfl/kinetic-constructs:latest -f .devcontainer/Dockerfile --push .
+
+docker buildx build: This uses the buildx extension of Docker, which is capable of building multi-platform images (though here we specify a single platform).
+--platform linux/amd64: This is the crucial part that tells Docker to build the image specifically for the linux/amd64 architecture, which is typically used by GitHub Codespaces.
+-t dieterfl/kinetic-constructs:latest: This tags the image.
+dieterfl/kinetic-constructs is the repository name on Docker Hub (replace dieterfl with your Docker Hub username if different).
+:latest is the tag (you might use version-specific tags like :1.0.0, :amd64-latest, etc., in practice).
+-f .devcontainer/Dockerfile: This specifies the path to your Dockerfile.
+--push: This flag tells Docker to automatically push the image to the remote repository (Docker Hub in this case, as inferred by the image name format) after a successful build.
+.: This is the build context (usually the current directory, which should contain all files needed for the build, including the Dockerfile if not specified with -f, and any files copied into the image).
+Before running this, you would typically need to be logged into Docker Hub via the CLI:
+docker login
