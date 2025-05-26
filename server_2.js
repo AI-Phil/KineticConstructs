@@ -4,7 +4,7 @@ require('./logger.js'); // Configure logging levels first
 // Log environment configuration status
 console.log("Dotenv loaded.");
 console.log('ASTRA_DB_API_ENDPOINT:', process.env.ASTRA_DB_API_ENDPOINT);
-console.log('ASTRA_DB_TOKEN:', process.env.ASTRA_DB_TOKEN ? 'Token loaded (masked)' : 'Token NOT loaded');
+console.log('ASTRA_DB_APPLICATION_TOKEN:', process.env.ASTRA_DB_APPLICATION_TOKEN ? 'Token loaded (masked)' : 'Token NOT loaded');
 
 const express = require('express');
 const path = require('path');
@@ -18,13 +18,13 @@ const port = process.env.PORT || 3000;
 // Environment variables validation
 const {
     ASTRA_DB_API_ENDPOINT,
-    ASTRA_DB_TOKEN,
+    ASTRA_DB_APPLICATION_TOKEN,
     ASTRA_DB_COLLECTION,
     LANGFLOW_ENDPOINT_URL,
 } = process.env;
 
-if (!ASTRA_DB_API_ENDPOINT || !ASTRA_DB_TOKEN) {
-    console.error("Error: ASTRA_DB_API_ENDPOINT and ASTRA_DB_TOKEN must be set in the .env file.");
+if (!ASTRA_DB_API_ENDPOINT || !ASTRA_DB_APPLICATION_TOKEN) {
+    console.error("Error: ASTRA_DB_API_ENDPOINT and ASTRA_DB_APPLICATION_TOKEN must be set in the .env file.");
     process.exit(1);
 }
 
@@ -39,7 +39,7 @@ let docTitleMap = new Map(); // Maps document IDs to their titles for quick look
 async function initializeDbAndData() {
     console.log("Running DB and Data Initialization...");
     try {
-        const client = new DataAPIClient(ASTRA_DB_TOKEN);
+        const client = new DataAPIClient(ASTRA_DB_APPLICATION_TOKEN);
         db = client.db(ASTRA_DB_API_ENDPOINT);
 
         productCollection = await db.collection(process.env.ASTRA_DB_PRODUCT_COLLECTION || 'products');
