@@ -126,24 +126,26 @@ Let's use GitHub Codespaces for a seamless development experience. It sets up ev
 
     Your `.env` file should look something like this (the paths for Langflow assume your repository is named `KineticConstructs` and is in the standard Codespaces workspace directory):
     ```dotenv
-    # Astra DB Credentials - Required
-    # Get these from your Astra DB database dashboard
+    # OpenAI Settings
+    OPENAI_API_KEY="sk-..."
 
-    ASTRA_DB_API_ENDPOINT='YOUR_ASTRA_DB_API_ENDPOINT'
-    ASTRA_DB_APPLICATION_TOKEN='YOUR_ASTRA_DB_APPLICATION_TOKEN'
-    ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME='api_key_name_from_integrations_page'
+    # Astra DB Settings
+    ASTRA_DB_API_ENDPOINT="https://YOUR_ENDPOINT.apps.astra.datastax.com"
+    ASTRA_DB_APPLICATION_TOKEN="AstraCS:..."
+    # This is the name you gave to your OpenAI API Key Credential in the Astra DB Integrations page
+    # (e.g., WorkshopOpenAIKey, as suggested in Step 3.3)
+    ASTRA_DB_INTEGRATION_OPENAI_KEY_NAME="api_key_name_from_integrations_page"
 
-    # Optional: Specify collection names if different from defaults
-    # ASTRA_DB_PRODUCT_COLLECTION='products'
-    # ASTRA_DB_DOCUMENT_COLLECTION='documents'
+    # --- Langflow Configuration ---
+    # Directory for logs, database, etc. Needs to be writable by the user running langflow.
+    LANGFLOW_CONFIG_DIR="/workspaces/KineticConstructs/.langflow_config"
 
-    OPENAI_API_KEY='YOUR_OPENAI_API_KEY'
+    # Specifies the database file location within the config dir
+    # Note the four slashes for an absolute path with sqlite:///
+    LANGFLOW_DATABASE_URL="sqlite:////workspaces/KineticConstructs/.langflow_config/langflow.db"
 
-    # Chatbot Configuration - comment in to for chatbot
-    # Replace with your Langflow server details and credentials
-    LANGFLOW_ENDPOINT='http://127.0.0.1:7860'
-    #LANGFLOW_PRODUCT_ASSISTANT_FLOW_ID='YOUR_FLOW_ID'
-    #LANGFLOW_API_KEY='YOUR_LANGFLOW_API_KEY'  # Optional, only required if your Langflow instance uses API key authentication 
+    # Explicitly set the log file path
+    LANGFLOW_LOG_FILE="/workspaces/KineticConstructs/.langflow_config/langflow.log"
     ```
 
 8.  **Load Data into Astra DB:** Let's populate your database with sample product data. Open a terminal in your Codespace (Terminal -> New Terminal or Ctrl+`).
@@ -426,6 +428,196 @@ Open the application. You should now see two search boxes, allowing for more pre
 
 Stop the server (Ctrl+C).
 
+### Iteration 4: Langflow Chatbot
+
+In this iteration, we evolve our search by leveraging the power of large language models (LLM) to determine the search query, 
+and to tailor the results to the user's requirements. This simplification allows us to add a chatbot to our original `server.js` 
+application by enabling a chat widget that has been hidden in plain sight all along.
+
+#### Review Langflow Flows
+
+We will first configure Langflow and review the Flows.
+
+**Steps:**
+
+1.  **Start Langflow:**
+    Ensure Langflow is running. In a *new* Codespace terminal:
+    ```bash
+    langflow run --env-file ./.env
+    ```
+    Open Langflow in your browser using the URL provided in the `PORTS` tab (likely port 7860).
+
+    ![Langflow UI in Browser](./docs/images/langflow-start-with-autoimport.png)
+
+2.  **Configure the Imported Langflow Components**
+
+Flows will have been automatically imported, but you need to configure the components with your credentials:
+
+| Flow | Component | Configuration Required | Screenshot |
+|------|-----------|----------------------|------------|
+| **Product Catalog Hybrid Search** | Astra DB | • Astra DB Application Token<br>• Database<br>• Collection | <img src="./docs/images/langflow-cred-astradb.png" width="200px" alt="Astra DB Component"> |
+| **Product Catalog Hybrid Search** | OpenAI | • OpenAI API Key | <img src="./docs/images/langflow-cred-openai.png" width="200px" alt="OpenAI Component"> |
+| **Product Recommender** | Agent | • OpenAI API Key | <img src="./docs/images/langflow-cred-agent.png" width="200px" alt="Agent Component"> |
+
+**Video Tutorial:**
+<div>
+    <a href="https://www.loom.com/share/d0222512cbd94afa9ab3f30f6034a292">
+      <p>Setting Up Langflow Flows - Watch Video</p>
+    </a>
+    <a href="https://www.loom.com/share/d0222512cbd94afa9ab3f30f6034a292">
+      <img style="max-width:600px;" src="https://cdn.loom.com/sessions/thumbnails/d0222512cbd94afa9ab3f30f6034a292-8e50019e511cfa3c-full-play.gif">
+    </a>
+</div>
+
+3. **Run the Product Recommender Playground**
+
+With the Product Recommender Flow open, launch the Playground:
+
+![Product Recommender Playground](./docs/images/langflow-product-recommender-launch.png)
+
+Ask a Question (e.g. `I am looking for a playset for a 12 year old`):
+
+![Product Recommender Question](./docs/images/langflow-product-recommender-input.png)
+
+See the Response:
+
+![Product Recommender Answer](./docs/images/langflow-product-recommender-answer.png)
+
+4. **How it Works:**
+
+- The user asks the Product Assistant chatbot for a product recommendation.
+- The query is sent to Langflow, where an Agentic flow (`flows/Product Recommender.json`):
+  - **Chat Input** receives the query.
+  - **Agent** determines to use a tool to help complete the query
+    - **Product Catalog Search** is tool that is implemented as another flow (`flows/Product Catalog Hybrid Search.json`) described below
+    - Receives results from the search and determines what products best match the user's query
+    - Outputs results in HTML format
+  - **Chat Output** returns the agent's output to the user
+- The search itself is executed by the **Product Catalog Hybrid Search** flow, which:
+  - **Chat Input** receives the query.
+  - **Structured Output** uses a LLM to convert that query into a "question" (`$vectorize`) and "keywords (`$lexical`) hybrid search
+    - **Prompt** is used by the Structured Output component, providing context and instructions for the LLM to do this conversion
+  - Two **Parser** components extract the specific semantic and keyword elements of the structured data output by the Structured Output component
+  - **Astra DB** receives the search plan and acts as a hybrid search component, retrieving relevant products from the `products` collection using 
+    both semantic and lexical criteria.
+  - Another **Parser** component converts the `product` JSON documents into a string
+  - **Chat Output** sends this string back to the caller
+
+#### Enable the Chatbot
+
+While it is nice to see the Chatbot working in Langflow, it would be even nicer to have that in our application!
+
+**Steps:**
+
+1. **Comment-in the LANGFLOW_ENDPOINT_URL in `.env`**
+
+In your `.env` file is a commented out variable `LANGFLOW_ENDPOINT_URL`; this tells the Node.js server where to find Langflow. Remove the `#` 
+at the start of the line to comment it in:
+
+```text
+LANGFLOW_ENDPOINT_URL='http://127.0.0.1:7860'
+```
+
+2. **Review `langflow-chatbot.yaml`**
+
+The `langflow-chatbot.yaml` file contains the configuration that connects the browser (plugin) to the Langflow 
+server via a proxy service:
+
+```yaml
+profiles:
+  - profileId: "product-recommender" 
+    server:
+      flowId: "kinetic-constructs-product-recommender" 
+      ...
+    chatbot:
+      floatingWidget:
+        useFloating: true
+        floatPosition: "bottom-right"
+      ...
+```
+
+The `profiles.profileId` is how the browser specifies which flow to use, and the `chatbot` settings determine how it looks and works.
+The Node server uses `flowId` (which in this case is the "Endpoint Name" as set in the Flow's Details) along with the 
+environment variable `LANGFLOW_ENDPOINT_URL` to know how to connect this particular chat profile to Langflow.
+
+3. **Try it Out:**
+
+Here we are demonstrating that the Chatbot can be a complete alternative to modifying the user interface! A chat interface
+is arguably more natural to users, and does not require them to understand how to split their search into 'semantic' and
+'keywords', nor does it require them to understand the categories and tags.
+
+```bash
+node server.js
+```
+Open the application. You should see a Chatbot Button in the lower right:
+
+![Node Chatbot Button](./docs/images/langflow-node-chatbot-start.png)
+
+Click on the button and type in a query:
+
+![Node Chatbot Input](./docs/images/langflow-node-chatbot-input.png)
+
+The Chatbot will give an answer similar to:
+
+![Node Chatbot Answer](./docs/images/langflow-node-chatbot-answer.png)
+
+You can click on the Product Cards, and the product page will appear in the background!  
+
+As a chat interface (with memory) you can ask follow-up questions, and the prior context will be incorporated into the search:
+
+![Node Chatbot Followup](./docs/images/langflow-node-chatbot-followup.png)
+
+Stop the server (Ctrl+C).
+
+4. **How it Works:**
+
+`server.js` starts the `langflow-chatbot` proxy and serve browser-related content:
+
+```javascript
+const { LangflowProxyService } = require('langflow-chatbot');
+
+app.use('/static/langflow-chatbot-plugin.js', express.static(require.resolve('langflow-chatbot/plugin')));
+app.use('/static/langflow-chatbot.css', express.static(require.resolve('langflow-chatbot/styles')));
+
+// This happens conditionally on the LANGFLOW_ENDPOINT_URL
+const LANGFLOW_PROXY_API_BASE_PATH = '/api/langflow';
+app.locals.langflowProxyApiBasePath = '';
+let langflowProxy;
+if (LANGFLOW_ENDPOINT_URL) {
+    app.locals.langflowProxyApiBasePath = LANGFLOW_PROXY_API_BASE_PATH;
+
+    langflowProxy = new LangflowProxyService({
+        instanceConfigPath: './langflow-chatbot.yaml',
+        proxyApiBasePath: LANGFLOW_PROXY_API_BASE_PATH,
+      });
+
+      app.use(LANGFLOW_PROXY_API_BASE_PATH, async (req, res, next) => {
+        await langflowProxy.handleRequest(req, res);
+    });
+}
+```
+
+And in the browser code, the EJS partial `chatbot-widget.ejs` shows the component:
+
+```javascript
+    const CHATBOT_PROFILE_ID = "product-recommender";
+    async function initChatbot(proxyApiBasePath, sessionId) {
+        const pluginInitOptions = {
+            profileId: CHATBOT_PROFILE_ID,
+            proxyApiBasePath: proxyApiBasePath,
+            containerId: 'langflow-chatbot-container',
+            sessionId: sessionId,
+            mode: 'floating',
+        };
+        const chatbotInstance = await window.LangflowChatbotPlugin.init(pluginInitOptions);
+        return chatbotInstance;
+    }
+```
+
+(The browser code is behind an `<% if (langflowProxyApiBasePath) { %>` , which is why it is hidden until
+the `LANGFLOW_ENDPOINT_URL` is set!)
+
+
 ## 🎉 Workshop Complete!
 
 Congratulations! You've successfully modernized a Node.js application by integrating powerful AI search capabilities using DataStax Astra DB's Data API.
@@ -438,6 +630,7 @@ You've learned how to:
     *   Hybrid search combining keywords and vectors using the `$hybrid` operator and the `findAndRerank` method.
     *   Advanced hybrid search with separate explicit semantic and lexical inputs within the `$hybrid` operator.
 *   Understand the concepts of vector embeddings and their role in semantic search.
+*   Use an Agentic Langflow flow and integrate it with a Node.js Chatbot
 
 This demonstrates how you can rapidly build and deploy sophisticated AI search features directly into your application using Astra DB.
 
