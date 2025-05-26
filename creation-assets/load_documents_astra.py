@@ -7,20 +7,20 @@ from create_astra_collection import create_collection_if_not_exists
 
 load_dotenv()
 
-ASTRA_DB_TOKEN = os.getenv("ASTRA_DB_TOKEN") 
+ASTRA_DB_APPLICATION_TOKEN = os.getenv("ASTRA_DB_APPLICATION_TOKEN") 
 ASTRA_DB_API_ENDPOINT = os.getenv("ASTRA_DB_API_ENDPOINT")
 
 ASTRA_DB_COLLECTION = "documents"
 
-if not ASTRA_DB_TOKEN or not ASTRA_DB_API_ENDPOINT:
-    print("Error: ASTRA_DB_TOKEN and ASTRA_DB_API_ENDPOINT must be set in the .env file.")
+if not ASTRA_DB_APPLICATION_TOKEN or not ASTRA_DB_API_ENDPOINT:
+    print("Error: ASTRA_DB_APPLICATION_TOKEN and ASTRA_DB_API_ENDPOINT must be set in the .env file.")
     exit(1)
 
 def load_documents():
     """Finds document JSONL files, connects to AstraDB, and loads the data."""
 
     print(f"Connecting to AstraDB: {ASTRA_DB_API_ENDPOINT}")
-    client = DataAPIClient(ASTRA_DB_TOKEN)
+    client = DataAPIClient(ASTRA_DB_APPLICATION_TOKEN)
     db = client.get_database(ASTRA_DB_API_ENDPOINT)
 
     is_lexical, collection_name = create_collection_if_not_exists(db, ASTRA_DB_COLLECTION)
