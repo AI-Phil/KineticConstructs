@@ -43,11 +43,14 @@ Get your free-forever, serverless vector database:
 *   Go to [astra.datastax.com](https://astra.datastax.com).
 *   Sign up or log in (using GitHub is easy!).
 *   Click `Databases` -> `Create Database`.
-*   Select `Serverless (Vector)`, choose Amazon Web Services as Cloud Provider, choose us-east-2 as Region, and name your database (e.g., `KineticConstructs`).
+*   Select `Serverless (Vector)`, choose **Amazon Web Services** as Cloud Provider, choose **us-east-2** as Region (as it is currently the only 
+    region with hybrid in preview), and name your database (e.g., `KineticConstructs`).
 
     ![astradb](./docs/images/astra-create-vector-db.png)
 
-*   Wait a few minutes for provisioning.
+*   Wait a few minutes for provisioning. 
+    - **Tip**: If you do not have an OpenAI API key, get that now while you wait for Astra!
+    - **Tip**: Once you have an OpenAI API key, you could work on Step 4 (setting up workspace environment) as this also has waiting time.
 *   On the database dashboard, find and copy your **API Endpoint** (under Database details). Keep this safe!
 *   Click `Generate Token`. Choose the "Database Administrator" role for simplicity in this workshop. **Immediately copy the Application Token** (it starts with `AstraCS:...`). This token is shown only once, so save it securely!
 
@@ -72,9 +75,13 @@ For Astra DB to automatically generate embeddings (e.g., when using the `$vector
     *   In the top navigation bar, click _settings_ **Settings**.
     *   Click on **Integrations** under your organization's settings.
 
+    ![Astra Settings](./docs/images/astra-settings.png) ![Astra Integrations](./docs/images/astra-integrations.png)
+
 2.  **Add OpenAI Embedding Provider:**
     *   Look for the **OpenAI** card under "Available Integrations" or "Embedding Providers."
     *   Click **Add Integration** on the OpenAI card.
+
+    ![Astra Add Integration](./docs/images/astra-add-integration.png)
 
 3.  **Add API key:**
     *   You'll be prompted to add a **API key name:** Enter a descriptive name, for example, `WorkshopOpenAIKey`.
@@ -94,7 +101,7 @@ By completing these steps, you've authorized your Astra DB instance to use your 
 Let's use GitHub Codespaces for a seamless development experience. It sets up everything you need in the cloud, including all dependencies from our pre-built Docker image.
 
 1.  **Fork the Workshop Repository:** First, create your own copy (a "fork") of the workshop repository under your GitHub account. This will allow you to make changes and save your progress.
-    *   Navigate to the main workshop repository page: [https://github.com/difli/KineticConstructs](https://github.com/difli/KineticConstructs).
+    *   Navigate to the main workshop repository page: [https://github.com/AI-Phil/KineticConstructs](https://github.com/AI-Phil/KineticConstructs).
     *   Click the `Fork` button (usually near the top right of the page).
 
     ![Fork Button](./docs/images/github-fork-button.png)
@@ -102,8 +109,11 @@ Let's use GitHub Codespaces for a seamless development experience. It sets up ev
 2.  **Configure Your Fork:**
     *   On the "Create a new fork" page, your GitHub account should be pre-selected as the owner.
     *   **Important:** Keep the default `Repository name` as `KineticConstructs`. 
-    *   Ensure `Copy the workshop branch only` is **UNCHECKED** if such an option appears (forking typically includes all branches by default, which is what we want).
+    *   Ensure `Copy the main branch only` is **UNCHECKED** - by default only `main` is copied but we want all branches!
     *   Click `Create fork`.
+
+    ![Configure Fork](./docs/images/github-configure-fork.png)
+
 
 3.  **Navigate to Your Forked Repository:** After a few moments, you'll be taken to the main page of *your* forked repository (e.g., `https://github.com/YOUR_USERNAME/KineticConstructs`).
 
@@ -430,8 +440,20 @@ Stop the server (Ctrl+C).
 
 ### Iteration 4: Langflow Chatbot
 
+Hybrid search is a powerful combination of semantic and keyword search terms without requiring pre-determined categories or 
+tags. But there are a couple of limitations we can improve upon:
+
+1. The search returns results in a ranked order, but does not remove results that are not relevant to the query. 
+   It is possible to fine-tune this with thresholds, but that requires more code complexity and introduces an element of 
+   fragility to the solution.
+2. This technique requires users to have an understanding of how to use the search tools; with the category/tag filtering 
+   this is somewhat obvious in usage, the idea of searching by meaning is novel and may confuse users.
+
+If we go back to the problem we are trying to solve (helping users find the perfect product), a more natural interface might be 
+a chatbot. 
+
 In this iteration, we evolve our search by leveraging the power of large language models (LLM) to determine the search query, 
-and to tailor the results to the user's requirements. This simplification allows us to add a chatbot to our original `server.js` 
+and to filter the results to the user's request. This simplification allows us to add a chatbot to our original `server.js` 
 application by enabling a chat widget that has been hidden in plain sight all along.
 
 #### Review Langflow Flows
@@ -440,7 +462,14 @@ We will first configure Langflow and review the Flows.
 
 **Steps:**
 
-1.  **Start Langflow:**
+1. **Create New Terminal Window**
+
+   In the upper right corner of the terminal in which you have been running the `node` command is an option to open a new terminal window. 
+   Click the "+" icon and a new terminal tab will open.
+
+    ![Codespace New Terminal](./docs/images/codespace-new-terminal.png)
+
+2.  **Start Langflow:**
     Ensure Langflow is running. In a *new* Codespace terminal:
     ```bash
     langflow run --env-file ./.env
@@ -449,7 +478,7 @@ We will first configure Langflow and review the Flows.
 
     ![Langflow UI in Browser](./docs/images/langflow-start-with-autoimport.png)
 
-2.  **Configure the Imported Langflow Components**
+3.  **Configure the Imported Langflow Components**
 
 Flows will have been automatically imported, but you need to configure the components with your credentials:
 
@@ -469,7 +498,7 @@ Flows will have been automatically imported, but you need to configure the compo
     </a>
 </div>
 
-3. **Run the Product Recommender Playground**
+4. **Run the Product Recommender Playground**
 
 With the Product Recommender Flow open, launch the Playground:
 
@@ -483,7 +512,12 @@ See the Response:
 
 ![Product Recommender Answer](./docs/images/langflow-product-recommender-answer.png)
 
-4. **How it Works:**
+The playground response may have some formatting and link problems, but that is okay as the prompt has been engineered to output
+HTML we will consume in our own chatbot!
+
+5. **How it Works:**
+
+You can close the playground dialog and explore the two flows which are described next.
 
 - The user asks the Product Assistant chatbot for a product recommendation.
 - The query is sent to Langflow, where an Agentic flow (`flows/Product Recommender.json`):
@@ -546,6 +580,8 @@ Here we are demonstrating that the Chatbot can be a complete alternative to modi
 is arguably more natural to users, and does not require them to understand how to split their search into 'semantic' and
 'keywords', nor does it require them to understand the categories and tags.
 
+Let's launch our original `server.js` file and see how this alternative user experience works:
+
 ```bash
 node server.js
 ```
@@ -567,7 +603,15 @@ As a chat interface (with memory) you can ask follow-up questions, and the prior
 
 ![Node Chatbot Followup](./docs/images/langflow-node-chatbot-followup.png)
 
-Stop the server (Ctrl+C).
+Return to the Langflow Playground in the "Product Recommender" flow, where you will see a new session (other than "Default Session")
+which corresponds to your browser session. Have a look at your follow-up question, and expand the "Finished" dropdown:
+
+![Langflow Followup in Playground](./docs/images/langflow-followup-in-playground.png)
+
+What we see is that the LLM in this flow has combined the follow-up query with the previous query, and sent this query
+the "Product Catalog Hybrid Search" tool. That tool returned output (the query results from our `products` table), 
+and having read through all this information has determined the products that are relevant to the query.
+
 
 4. **How it Works:**
 
@@ -579,7 +623,7 @@ const { LangflowProxyService } = require('langflow-chatbot');
 app.use('/static/langflow-chatbot-plugin.js', express.static(require.resolve('langflow-chatbot/plugin')));
 app.use('/static/langflow-chatbot.css', express.static(require.resolve('langflow-chatbot/styles')));
 
-// This happens conditionally on the LANGFLOW_ENDPOINT_URL
+// This happens conditionally on the LANGFLOW_ENDPOINT_URL environment variable being set
 const LANGFLOW_PROXY_API_BASE_PATH = '/api/langflow';
 app.locals.langflowProxyApiBasePath = '';
 let langflowProxy;
