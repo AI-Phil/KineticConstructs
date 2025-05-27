@@ -16,16 +16,13 @@
 
     const CHATBOT_PROFILE_ID = "product-recommender";
     const CHAT_SESSION_COOKIE_NAME = "chatSessionId";
-    const CHAT_SESSION_COOKIE_DAYS = 7;
+    const CHAT_SESSION_COOKIE_DAYS = 30;
 
     function manageChatSessionId() {
         let sessionId = getCookie(CHAT_SESSION_COOKIE_NAME);
         if (!sessionId) {
             sessionId = generateUUID();
             setCookie(CHAT_SESSION_COOKIE_NAME, sessionId, CHAT_SESSION_COOKIE_DAYS);
-            console.log(`New chatSessionId generated: ${sessionId}`);
-        } else {
-            console.log(`Using existing chatSessionId: ${sessionId}`);
         }
         return sessionId;
     }

@@ -1,3 +1,34 @@
+<%
+    // Helper function to create URLSearchParams while preserving arrays
+    function createCleanParams(baseParams, excludeKeys = [], additionalParams = {}) {
+        const params = new URLSearchParams();
+        
+        // Add all non-excluded parameters from baseParams
+        Object.keys(baseParams || {}).forEach(key => {
+            if (!excludeKeys.includes(key)) {
+                const value = baseParams[key];
+                if (Array.isArray(value)) {
+                    value.forEach(v => params.append(key, v));
+                } else {
+                    params.set(key, value);
+                }
+            }
+        });
+        
+        // Add additional parameters
+        Object.keys(additionalParams).forEach(key => {
+            const value = additionalParams[key];
+            if (Array.isArray(value)) {
+                value.forEach(v => params.append(key, v));
+            } else {
+                params.set(key, value);
+            }
+        });
+        
+        return params;
+    }
+%>
+
 <div class="container search-container">
     <div id="sidebar" class="search-sidebar">
         <% if ((typeof semanticSearchEnabled !== 'undefined' && semanticSearchEnabled) || (typeof keywordSearchEnabled !== 'undefined' && keywordSearchEnabled)) { %>
@@ -53,15 +84,12 @@
                         <button type="button" class="dropbtn"><%= family %></button> 
                         <div class="dropdown-content">
                             <% 
-                                const allFamilyParams = new URLSearchParams(queryParams || '');
-                                allFamilyParams.set('family', family);
+                                const allFamilyParams = createCleanParams(queryParams, ['family', 'type'], { family: family });
                             %>
                             <a href="/search?<%= allFamilyParams.toString() %>">All <%= family %></a>
                             <% Object.keys(hierarchy[family]).forEach(productType => { %>
                                 <% 
-                                    const typeParams = new URLSearchParams(queryParams || '');
-                                    typeParams.set('family', family);
-                                    typeParams.set('type', productType);
+                                    const typeParams = createCleanParams(queryParams, ['family', 'type'], { family: family, type: productType });
                                 %>
                                 <a href="/search?<%= typeParams.toString() %>"><%= productType %></a> 
                             <% }); %>
@@ -79,17 +107,18 @@
                     <ul>
                     <% displayTags.forEach(tagInfo => { %>
                         <% 
-                            const sidebarTagLinkParams = new URLSearchParams(queryParams || '');
-                            let currentTagsArray = sidebarTagLinkParams.getAll('tag'); 
+                            // Handle tags properly
+                            let currentTagsArray = currentTags || [];
                             const isTagSelected = currentTagsArray.includes(tagInfo.tag);
 
+                            let tagsForUrl;
                             if (isTagSelected) {
-                                const tagsToKeep = currentTagsArray.filter(t => t !== tagInfo.tag);
-                                sidebarTagLinkParams.delete('tag');
-                                tagsToKeep.forEach(t => sidebarTagLinkParams.append('tag', t));
+                                tagsForUrl = currentTagsArray.filter(t => t !== tagInfo.tag);
                             } else {
-                                sidebarTagLinkParams.append('tag', tagInfo.tag);
+                                tagsForUrl = [...currentTagsArray, tagInfo.tag];
                             }
+                            
+                            const sidebarTagLinkParams = createCleanParams(queryParams, ['tag'], { tag: tagsForUrl });
 
                             const tagLinkClass = isTagSelected ? 'tag-link selected' : (tagInfo.dynamicCount === 0 ? 'tag-link zero-count' : 'tag-link');
                             const showTag = tagInfo.dynamicCount > 0 || isTagSelected; 
@@ -128,8 +157,7 @@
                             <span class="active-filter-pill search-filter-pill">
                                 "<%= queryParams.q %>"
                                 <% 
-                                    const clearSearchParams = new URLSearchParams(queryParams || '');
-                                    clearSearchParams.delete('q');
+                                    const clearSearchParams = createCleanParams(queryParams, ['q']);
                                 %>
                                 <a href="/search?<%= clearSearchParams.toString() %>" class="clear-filter-x" title="Clear semantic search">&#x2716;</a>
                             </span>
@@ -138,8 +166,7 @@
                             <span class="active-filter-pill search-filter-pill">
                                 "<%= queryParams.keyword %>"
                                 <% 
-                                    const clearKeywordParams = new URLSearchParams(queryParams || '');
-                                    clearKeywordParams.delete('keyword');
+                                    const clearKeywordParams = createCleanParams(queryParams, ['keyword']);
                                 %>
                                 <a href="/search?<%= clearKeywordParams.toString() %>" class="clear-filter-x" title="Clear keyword search">&#x2716;</a>
                             </span>
@@ -155,9 +182,7 @@
                             <span class="active-filter-pill category-filter-pill">
                                 <%= currentFamily %><% if (currentType) { %> &gt; <%= currentType %><% } %>
                                 <% 
-                                    const removeCategoryParams = new URLSearchParams(queryParams || '');
-                                    removeCategoryParams.delete('family');
-                                    removeCategoryParams.delete('type');
+                                    const removeCategoryParams = createCleanParams(queryParams, ['family', 'type']);
                                 %>
                                 <a href="/search?<%= removeCategoryParams.toString() %>" class="clear-filter-x" title="Remove category filter">&#x2716;</a>
                             </span>
@@ -170,10 +195,8 @@
                                     <span class="active-tag-pill active-filter-pill">
                                         <%= tag %>
                                         <% 
-                                            const removeTagUrlParams = new URLSearchParams(queryParams || '');
                                             const tagsToKeep = currentTags.filter(t => t !== tag);
-                                            removeTagUrlParams.delete('tag');
-                                            tagsToKeep.forEach(t => removeTagUrlParams.append('tag', t));
+                                            const removeTagUrlParams = createCleanParams(queryParams, ['tag'], { tag: tagsToKeep });
                                         %>
                                         <a href="/search?<%= removeTagUrlParams.toString() %>" class="clear-filter-x" title="Remove tag: <%= tag %>">&#x2716;</a>
                                     </span>
@@ -194,7 +217,7 @@
             <div class="product-grid">
                  <% products.forEach(product => { %>
                     <% 
-                        const productLinkParams = new URLSearchParams(queryParams || '');
+                        const productLinkParams = createCleanParams(queryParams);
                         const productUrl = `/product/${product._id}?${productLinkParams.toString()}`;
                     %>
                     <div class="product-card product-card-link" data-href="<%= productUrl %>"> 
@@ -211,8 +234,8 @@
                                 <div class="tags"> 
                                     <% product.tags.slice(0, 5).forEach(tag => { %>
                                         <% 
-                                            const tagParams = new URLSearchParams(queryParams || '');
-                                            tagParams.set('tag', tag);
+                                            const allTags = [...(currentTags || []), tag];
+                                            const tagParams = createCleanParams(queryParams, ['tag'], { tag: allTags });
                                         %>
                                         <a href="/search?<%= tagParams.toString() %>" class="tag-link"><span class="tag"><%= tag %></span></a>
                                     <% }); %>
