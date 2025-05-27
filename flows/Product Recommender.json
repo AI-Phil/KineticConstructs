@@ -7,7 +7,7 @@
         "data": {
           "sourceHandle": {
             "dataType": "ChatInput",
-            "id": "ChatInput-Pkk9O",
+            "id": "ChatInput-QrSLE",
             "name": "message",
             "output_types": [
               "Message"
@@ -15,19 +15,19 @@
           },
           "targetHandle": {
             "fieldName": "input_value",
-            "id": "Agent-xZiLs",
+            "id": "Agent-fhnQ4",
             "inputTypes": [
               "Message"
             ],
             "type": "str"
           }
         },
-        "id": "reactflow__edge-ChatInput-Pkk9O{œdataTypeœ:œChatInputœ,œidœ:œChatInput-Pkk9Oœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}-Agent-xZiLs{œfieldNameœ:œinput_valueœ,œidœ:œAgent-xZiLsœ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}",
+        "id": "reactflow__edge-ChatInput-QrSLE{œdataTypeœ:œChatInputœ,œidœ:œChatInput-QrSLEœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}-Agent-fhnQ4{œfieldNameœ:œinput_valueœ,œidœ:œAgent-fhnQ4œ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}",
         "selected": false,
-        "source": "ChatInput-Pkk9O",
-        "sourceHandle": "{œdataTypeœ:œChatInputœ,œidœ:œChatInput-Pkk9Oœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}",
-        "target": "Agent-xZiLs",
-        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œAgent-xZiLsœ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}"
+        "source": "ChatInput-QrSLE",
+        "sourceHandle": "{œdataTypeœ:œChatInputœ,œidœ:œChatInput-QrSLEœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}",
+        "target": "Agent-fhnQ4",
+        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œAgent-fhnQ4œ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}"
       },
       {
         "animated": false,
@@ -35,7 +35,7 @@
         "data": {
           "sourceHandle": {
             "dataType": "RunFlow",
-            "id": "RunFlow-SaOpg",
+            "id": "RunFlow-c2VNZ",
             "name": "component_as_tool",
             "output_types": [
               "Tool"
@@ -43,19 +43,19 @@
           },
           "targetHandle": {
             "fieldName": "tools",
-            "id": "Agent-xZiLs",
+            "id": "Agent-fhnQ4",
             "inputTypes": [
               "Tool"
             ],
             "type": "other"
           }
         },
-        "id": "reactflow__edge-RunFlow-SaOpg{œdataTypeœ:œRunFlowœ,œidœ:œRunFlow-SaOpgœ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}-Agent-xZiLs{œfieldNameœ:œtoolsœ,œidœ:œAgent-xZiLsœ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}",
+        "id": "reactflow__edge-RunFlow-c2VNZ{œdataTypeœ:œRunFlowœ,œidœ:œRunFlow-c2VNZœ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}-Agent-fhnQ4{œfieldNameœ:œtoolsœ,œidœ:œAgent-fhnQ4œ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}",
         "selected": false,
-        "source": "RunFlow-SaOpg",
-        "sourceHandle": "{œdataTypeœ:œRunFlowœ,œidœ:œRunFlow-SaOpgœ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}",
-        "target": "Agent-xZiLs",
-        "targetHandle": "{œfieldNameœ:œtoolsœ,œidœ:œAgent-xZiLsœ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}"
+        "source": "RunFlow-c2VNZ",
+        "sourceHandle": "{œdataTypeœ:œRunFlowœ,œidœ:œRunFlow-c2VNZœ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}",
+        "target": "Agent-fhnQ4",
+        "targetHandle": "{œfieldNameœ:œtoolsœ,œidœ:œAgent-fhnQ4œ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}"
       },
       {
         "animated": false,
@@ -63,7 +63,7 @@
         "data": {
           "sourceHandle": {
             "dataType": "Agent",
-            "id": "Agent-xZiLs",
+            "id": "Agent-fhnQ4",
             "name": "response",
             "output_types": [
               "Message"
@@ -71,7 +71,7 @@
           },
           "targetHandle": {
             "fieldName": "input_value",
-            "id": "ChatOutput-mOkKM",
+            "id": "ChatOutput-1VmD8",
             "inputTypes": [
               "Data",
               "DataFrame",
@@ -80,12 +80,12 @@
             "type": "other"
           }
         },
-        "id": "reactflow__edge-Agent-xZiLs{œdataTypeœ:œAgentœ,œidœ:œAgent-xZiLsœ,œnameœ:œresponseœ,œoutput_typesœ:[œMessageœ]}-ChatOutput-mOkKM{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-mOkKMœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œotherœ}",
+        "id": "reactflow__edge-Agent-fhnQ4{œdataTypeœ:œAgentœ,œidœ:œAgent-fhnQ4œ,œnameœ:œresponseœ,œoutput_typesœ:[œMessageœ]}-ChatOutput-1VmD8{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-1VmD8œ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œotherœ}",
         "selected": false,
-        "source": "Agent-xZiLs",
-        "sourceHandle": "{œdataTypeœ:œAgentœ,œidœ:œAgent-xZiLsœ,œnameœ:œresponseœ,œoutput_typesœ:[œMessageœ]}",
-        "target": "ChatOutput-mOkKM",
-        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-mOkKMœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œotherœ}"
+        "source": "Agent-fhnQ4",
+        "sourceHandle": "{œdataTypeœ:œAgentœ,œidœ:œAgent-fhnQ4œ,œnameœ:œresponseœ,œoutput_typesœ:[œMessageœ]}",
+        "target": "ChatOutput-1VmD8",
+        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-1VmD8œ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œotherœ}"
       }
     ],
     "nodes": [
@@ -93,7 +93,7 @@
         "data": {
           "description": "Define the agent's instructions, then enter a task to complete using tools.",
           "display_name": "Agent",
-          "id": "Agent-xZiLs",
+          "id": "Agent-fhnQ4",
           "node": {
             "base_classes": [
               "Message"
@@ -663,7 +663,7 @@
                 "trace_as_input": true,
                 "trace_as_metadata": true,
                 "type": "str",
-                "value": "You are a product recommendation agent for a company called Kinetic Constructs, whose mission is\n“Inspiring creativity, problem-solving, and collaborative play through innovative, interactive, and educational toys.”\n\nYou should use tools to help the user find the right product for their needs.\n\nWhen you respond, output **only HTML** (no Markdown), structured as follows:\n\n1. **Introductory narrative**: One or two `<p>` elements with some narrative to help with conversational flow.\n2. A `<section id=\"recommendations\">` wrapper around all product suggestions.\n3. Within that section, for each product, emit:\n   - `<article class=\"product-recommendation\">`\n   - An `<h4>` containing a link to `/product/sku/:sku` with the product’s (generic) name.  \n     ```html\n     <h2><a href=\"/product/sku/GEN-001\">Modular Construction Set</a></h2>\n     ```\n   - An `<img>` tag using the provided image URL scaled to `width=\"200px\"` (height auto):  \n     ```html\n     <img src=\"/images/products/product1.png\" width=\"200px\" alt=\"Modular Construction Set\"/>\n     ```\n   - A `<p>` summarizing the key selling points tailored to the user’s needs.\n   - Close the `</article>`.\n4. **Closing narrative**: One or two `<p>` elements inviting the user to refine their criteria or ask for more options.\n\n**Requirements:**\n- Do **not** include any Markdown or raw large image links—only the scaled `<img>`.\n- Focus on **key selling points that are specific to the user's needs**, not an attribute dump.\n- If the user hasn’t specified preferences, use your intro paragraph to ask a clarifying question and suggest two or three varied options.\n\n**Example skeleton output:**\n\n<p>I’ve selected a few interactive kits that spark curiosity and hands-on problem-solving. Let me know which one interests you most, or share any specific features you’d like.</p>\n\n<section id=\"recommendations\">\n  <article class=\"product-recommendation\">\n    <h4><a href=\"/product/sku/GEN-001\">Modular Construction Set</a></h4>\n    <img src=\"/images/products/product1.png\" width=\"200px\" alt=\"Modular Construction Set\"/>\n    <p>This set lets kids build endless structures with magnetic blocks—perfect for developing engineering skills and creative design.</p>\n  </article>\n\n  <article class=\"product-recommendation\">\n    <h4><a href=\"/product/sku/GEN-002\">Electronic Circuit Kit</a></h4>\n    <img src=\"/images/products/product2.png\" width=\"200px\" alt=\"Electronic Circuit Kit\"/>\n    <p>Learn basic electronics through guided projects—from simple LED circuits to interactive alarms—ideal for budding inventors.</p>\n  </article>\n\n  <article class=\"product-recommendation\">\n    <h4><a href=\"/product/sku/GEN-003\">Robot Builder Pro</a></h4>\n    <img src=\"/images/products/product3.png\" width=\"200px\" alt=\"Robot Builder Pro\"/>\n    <p>Assemble and program a customizable robot using block code or Python—great for introducing coding and robotics concepts.</p>\n  </article>\n\n</section>\n\n<p>Let me know which option catches your eye, or tell me what you’re looking for and I’ll fine-tune these recommendations!</p>\n"
+                "value": "You are a product recommendation agent for a company called Kinetic Constructs, whose mission is\n“Inspiring creativity, problem-solving, and collaborative play through innovative, interactive, and educational toys.”\n\nYou should use tools to help the user find the right product for their needs.\n\nWhen you respond, output **only HTML** (no Markdown), structured as follows:\n\n1. **Introductory narrative**: One or two `<p>` elements with some narrative to help with conversational flow.\n2. A `<section id=\"recommendations\">` wrapper around all product suggestions.\n3. Within that section, for each product, emit:\n   - `<article class=\"product-recommendation\">`\n   - An `<h4>` containing a link to `/product/sku/:sku` with the product’s (generic) name.  \n     ```html\n     <h2><a href=\"/product/sku/GEN-001\">Modular Construction Set</a></h2>\n     ```\n   - An `<img>` tag using the provided image URL scaled to `width=\"200px\"` (height auto):  \n     ```html\n     <img src=\"/images/products/product1.png\" width=\"200px\" alt=\"Modular Construction Set\"/>\n     ```\n   - A `<p>` summarizing the key selling points tailored to the user’s needs.\n   - Close the `</article>`.\n4. **Closing narrative**: One or two `<p>` elements inviting the user to refine their criteria or ask for more options.\n\n**Requirements:**\n- Do **not** include any Markdown or raw large image links—only the scaled `<img>`.\n- Focus on **key selling points that are specific to the user's needs**, not an attribute dump.\n- If the user hasn’t specified preferences, use your intro paragraph to ask a clarifying question and suggest up to four varied options.\n\n**Example skeleton output:**\n\n<p>I’ve selected a few interactive kits that spark curiosity and hands-on problem-solving. Let me know which one interests you most, or share any specific features you’d like.</p>\n\n<section id=\"recommendations\">\n  <article class=\"product-recommendation\">\n    <h4><a href=\"/product/sku/GEN-001\">Modular Construction Set</a></h4>\n    <img src=\"/images/products/product1.png\" width=\"200px\" alt=\"Modular Construction Set\"/>\n    <p>This set lets kids build endless structures with magnetic blocks—perfect for developing engineering skills and creative design.</p>\n  </article>\n\n  <article class=\"product-recommendation\">\n    <h4><a href=\"/product/sku/GEN-002\">Electronic Circuit Kit</a></h4>\n    <img src=\"/images/products/product2.png\" width=\"200px\" alt=\"Electronic Circuit Kit\"/>\n    <p>Learn basic electronics through guided projects—from simple LED circuits to interactive alarms—ideal for budding inventors.</p>\n  </article>\n\n  <article class=\"product-recommendation\">\n    <h4><a href=\"/product/sku/GEN-003\">Robot Builder Pro</a></h4>\n    <img src=\"/images/products/product3.png\" width=\"200px\" alt=\"Robot Builder Pro\"/>\n    <p>Assemble and program a customizable robot using block code or Python—great for introducing coding and robotics concepts.</p>\n  </article>\n\n</section>\n\n<p>Let me know which option catches your eye, or tell me what you’re looking for and I’ll fine-tune these recommendations!</p>\n"
               },
               "temperature": {
                 "_input_type": "SliderInput",
@@ -780,7 +780,7 @@
           "showNode": true,
           "type": "Agent"
         },
-        "id": "Agent-xZiLs",
+        "id": "Agent-fhnQ4",
         "measured": {
           "height": 624,
           "width": 320
@@ -789,12 +789,12 @@
           "x": 385.3159387612126,
           "y": 395.8056493978328
         },
-        "selected": false,
+        "selected": true,
         "type": "genericNode"
       },
       {
         "data": {
-          "id": "RunFlow-SaOpg",
+          "id": "RunFlow-c2VNZ",
           "node": {
             "base_classes": [
               "Data",
@@ -1005,7 +1005,7 @@
           "type": "RunFlow"
         },
         "dragging": false,
-        "id": "RunFlow-SaOpg",
+        "id": "RunFlow-c2VNZ",
         "measured": {
           "height": 330,
           "width": 320
@@ -1019,7 +1019,7 @@
       },
       {
         "data": {
-          "id": "ChatInput-Pkk9O",
+          "id": "ChatInput-QrSLE",
           "node": {
             "base_classes": [
               "Message"
@@ -1319,7 +1319,7 @@
           "type": "ChatInput"
         },
         "dragging": false,
-        "id": "ChatInput-Pkk9O",
+        "id": "ChatInput-QrSLE",
         "measured": {
           "height": 66,
           "width": 192
@@ -1333,7 +1333,7 @@
       },
       {
         "data": {
-          "id": "ChatOutput-mOkKM",
+          "id": "ChatOutput-1VmD8",
           "node": {
             "base_classes": [
               "Message"
@@ -1630,7 +1630,7 @@
           "type": "ChatOutput"
         },
         "dragging": false,
-        "id": "ChatOutput-mOkKM",
+        "id": "ChatOutput-1VmD8",
         "measured": {
           "height": 66,
           "width": 192
@@ -1644,14 +1644,14 @@
       }
     ],
     "viewport": {
-      "x": 268.54572867039803,
-      "y": -445.8716058914848,
-      "zoom": 1.2380379411166706
+      "x": 249.1887562947179,
+      "y": -449.44863204192734,
+      "zoom": 1.2803342842529302
     }
   },
   "description": "Crafting Conversations, One Node at a Time.",
   "endpoint_name": "kinetic-constructs-product-recommender",
-  "id": "bbb87b03-434b-4ead-80cd-d95b7030ff3f",
+  "id": "9e9a4846-6d03-4d69-b40f-7c63189e7e39",
   "is_component": false,
   "last_tested_version": "1.4.2",
   "name": "Product Recommender",
