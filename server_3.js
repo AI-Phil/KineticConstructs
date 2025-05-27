@@ -236,8 +236,7 @@ Keywords: ${keywordQuery}`
         dynamicCount: dynamicTagCounts.get(tagInfo.tag) || 0
     }));
 
-    res.render('search', {
-        title: 'Search Products',
+    const renderData = {
         products: products,
         error: error,
         hierarchy: productHierarchy,
@@ -248,7 +247,17 @@ Keywords: ${keywordQuery}`
         queryParams: req.query,
         semanticSearchEnabled: true,
         keywordSearchEnabled: true
-    });
+    };
+
+    if (req.get('X-Request-Partial') === 'true') {
+        res.set('X-Page-Title', 'Search Products');
+        res.render('partials/search-main', renderData);
+    } else {
+        res.render('search', {
+            title: 'Search Products',
+            ...renderData
+        });
+    }
 });
 
 // Product detail page with optional initial document loading
@@ -304,7 +313,6 @@ app.get('/product/:productId', async (req, res) => {
     const renderData = {
         product: product,
         error: error,
-        script: '/js/product-detail.js',
         searchParams: searchQueryParams,
         initialDocContent: initialDocContent,
         initialDocTitle: initialDocTitle,
@@ -314,11 +322,7 @@ app.get('/product/:productId', async (req, res) => {
 
     if (req.get('X-Request-Partial') === 'true') {
         res.set('X-Page-Title', pageTitle);
-        // For partial, we don't need the overall page title or script vars used by the main layout
-        const partialData = { ...renderData };
-        delete partialData.script; // Not needed for the partial itself
-        // The 'title' variable for the <title> tag is handled by X-Page-Title header for partials
-        res.render('partials/product-main', partialData);
+        res.render('partials/product-main', renderData);
     } else {
         res.render('product', {
             title: pageTitle,
@@ -380,7 +384,6 @@ app.get('/product/sku/:sku', async (req, res) => {
     const renderData = {
         product: product,
         error: error,
-        script: '/js/product-detail.js',
         searchParams: searchQueryParams,
         initialDocContent: initialDocContent,
         initialDocTitle: initialDocTitle,
@@ -390,9 +393,7 @@ app.get('/product/sku/:sku', async (req, res) => {
 
     if (req.get('X-Request-Partial') === 'true') {
         res.set('X-Page-Title', pageTitle);
-        const partialData = { ...renderData };
-        delete partialData.script;
-        res.render('partials/product-main', partialData);
+        res.render('partials/product-main', renderData);
     } else {
         res.render('product', {
             title: pageTitle,
